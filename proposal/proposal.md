@@ -7,7 +7,7 @@
 **Project Title:** 3D Modeling and Rendering Web Application  
 **Student 1 Name:** Eoghan Brennan  **ID Number:** 23380443  
 **Student 2 Name:** Sum Wai Tsang  **ID Number:** 23500156  
-**Staff Member Consulted:** Not Yet Approved
+**Staff Member Consulted:** Professor Mark Humphrys
 
 ---
 
