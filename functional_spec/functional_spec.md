@@ -1,21 +1,19 @@
 # ZenCG 3D Model Editor Web Application
 
->Prepared by **Eoghan Brennan (23380443)** and **Sum Wai Tsang (23500156)**
->
->**Version 1.0**
->
->**28/11/2025**
+Prepared by **Eoghan Brennan (23380443)** and **Sum Wai Tsang (23500156)**
+
+**Version 1.0**
+
+**28/11/2025**
 
 # Table of Contents
----
 
 [[_TOC_]]
-
----
 
 # 1. Introduction
 
 ## 1.1 Purpose
+
 
 ## 1.2 Document Conventions
 
