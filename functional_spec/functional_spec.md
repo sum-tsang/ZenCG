@@ -1,27 +1,24 @@
-Software Requirements Specification
+# ZenCG 3D Model Editor Web Application
 
-for
+Prepared by Eoghan Brennan (23380443) and Sum Wai Tsang (23500156)
 
-ZenCG 3D Model Editor  
-Web Application
+**Version 1.0**  
 
-Eoghan Brennan (23380443)  
-Sum Wai Tsang (23500156)
-
-Version 1.0  
 28/11/2025
 
-Table of Contents
+---
+# Table of Contents
 
 [[_TOC_]]
 
-Revision History
+---
+# Revision History
 
-|   |   |   |   |
-|---|---|---|---|
-|Name|Date|Reason For Changes|Version|
-|First Version|28/11/25|Initial Document Creation|Version 1.0|
+| Name          | Date     | Reason For Changes        | Version     |
+| ------------- | -------- | ------------------------- | ----------- |
+| First Version | 28/11/25 | Initial Document Creation | Version 1.0 |
 
+---
 # 1. Introduction
 ## 1.1 Purpose
 
@@ -55,15 +52,16 @@ The key objectives are to deliver a user-friendly interface and efficient handli
 
 [5] Blender Project (n.d.) Accessibility – Voluntary Product Accessibility Template (VPAT). Available at: [https://projects.blender.org/attachments/dd33e8c7-d2e9-4693-96be-9e794c3b47f4](https://projects.blender.org/attachments/dd33e8c7-d2e9-4693-96be-9e794c3b47f4) (Accessed: 9 November 2025).
 
+---
 # 2. Overall Description
 
 ## 2.1 Product Perspective
 
 ### 2.1.1 ZenCG Context
 
-The proposed system, ZenCG, is a new self-contained web-based 3D model editing application designed to run in modern web browsers. It operates on client side architecture. It will be evaluated against Blender, a free and open-source 3D computer graphics suite [2], which provides a reference for which we will derive our system’s design, and justification for development. Our product aims to improve usability to greatly enhance the 3D creation experience for beginners, and accessibility to bring up the system’s ease of use.
+The proposed system, **ZenCG**, is a new self-contained web-based 3D model editing application designed to run in modern web browsers. It operates on client side architecture. It will be evaluated against **Blender**, a free and open-source 3D computer graphics suite [2], which provides a reference for which we will derive our system’s design, and justification for development. Our product aims to improve usability to greatly enhance the 3D creation experience for beginners, and accessibility to bring up the system’s ease of use.
 
-ZenCG is not a replacement for existing suites, but rather it aims to provide an alternative entry path for users who want to learn computer graphics without the pre-requisite technological literacy required to navigate complex software, such as Blender, or industry standards like Maya, which also have a tremendous cost.
+ZenCG is not a replacement for existing suites, but rather it aims to provide an alternative entry path for users who want to learn computer graphics without the pre-requisite technological literacy required to navigate complex software, such as Blender, or industry standards like **Maya**, which also have a tremendous cost.
 
 Blender is our main system of evaluation for our proposed project. The reason why we did not choose other existing systems to evaluate is because those systems typically require subscription plans. For instance Maya is priced at €180/month for an annual subscription and €273/month for a monthly subscription [3]. This substantial pricing makes professional-grade software unrealistic for beginners to use to learn 3D computer graphics development. Blender is comprehensive and widely used professionally, comparable with industry standards or paid software. This contributes to Blender being the perfect candidate to assess, derive, and reference, aiding in the development of our proposed system.
 ### 2.1.2 Blender
@@ -73,7 +71,7 @@ Blender is a free and open-source 3D computer graphics suite developed by the Bl
 
 Blender, despite being robust with diverse features, has many limitations, especially for users new to 3D computer graphics. The user interface is intimidating, and makes simple tasks seem more difficult than they actually are. System navigation is unintuitive for beginners because of the complexity of the interface. Blender software struggles on older and entry-level devices. Blender is thus not optimized for older, lower specification machines.
 
-Whilst evaluating Blender hands-on, there were deficiencies when it came to accessibility and user experience. To substantiate our claims on user-experience aligned accessibility flaws, we reference the Blender Accessibility Conformance Report, EN 301 549 Edition, (Based on VPAT® Version 2.4Rev), dated March 1, 2023. This report will serve as our primary reference for the following section. The conformance level definition—Does Not Support, provides evidence of limitations and criterion defined as such will validate our arguments [5]. Despite the reports measuring accessibility for people with disabilities, multiple accessibility red flags reveal user experience issues that can subsequently affect beginners.
+Whilst evaluating Blender hands-on, there were deficiencies when it came to accessibility and user experience. To substantiate our claims on user-experience aligned accessibility flaws, we reference the *Blender Accessibility Conformance Report, EN 301 549 Edition, (Based on VPAT® Version 2.4Rev)*, dated March 1, 2023. This report will serve as our primary reference for the following section. The conformance level definition—Does Not Support, provides evidence of limitations and criterion defined as such will validate our arguments [5]. Despite the reports measuring accessibility for people with disabilities, multiple accessibility red flags reveal user experience issues that can subsequently affect beginners.
 
 | Criteria                                                                 | Remarks and Explanations                                                                                          |
 | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
@@ -212,7 +210,6 @@ ZenCG is subject to many design and implementation constraints, which ensure sys
 - Local server during development.
 - HTTP/HTTPS requests for client-server communication.
 - User data stored locally using browser APIs.
-
 ### 2.5.4 Interface Constraints
 
 - Browser File API and Blob API, to manage file input and file output.
@@ -260,7 +257,8 @@ The development of the system depends on the following conditions:
 - Camera interaction tools, material management, lighting.
 - WebGL support for browsers.
 - Browser File APIs for importing/exporting OBJ files.
-  
+
+---
 # 3. External Interface Requirements
 
 ## 3.1 User Interfaces
@@ -271,9 +269,12 @@ The main workspace will consist of a 3D plane where imported models are displaye
 
 A side panel will be accessible which will provide access to editing tools including importing models, changing materials and colours and scaling model components, combining models and exporting final models. Common actions such as undo and redo will be on the side panel as well. The interface will include status elements, which will highlight errors or tooltips when hovering over controls. There will also be confirmation messages once an edit is made.
 
-![Main Workspace Wireframe Prototype](diagrams/wireframe_1.png)**Figure 3.1.1 Main Workspace Wireframe Prototype**
+![Main Workspace Wireframe Prototype](diagrams/wireframe_1.png)
+
+**Figure 3.1.1 Main Workspace Wireframe Prototype**
 
 ![Integrated User Manual and Tutorials Wireframe Prototype](diagrams/wireframe_2.png)
+
 **Figure 3.1.2 Integrated User Manual and Tutorials Wireframe Prototype**
 ## 3.2 Hardware Interfaces
 
@@ -294,186 +295,187 @@ The editor interacts with external file formats which are supplied by the user. 
 
 ZenCG operates as a client-side web application and doesn’t require network communication for its core functionality. HTTPS is the primary communication method and is used for security ensuring all data is encrypted. When uploading files, Multipart HTTP POST is used and HTTP GET is used for retrieving stored assets. HTTP protocols are used initially to transfer application assets like (HTML, JavaScript, Three.js) Files are handled locally using the Browser File API and Blob API.
 
+---
 # 4. System Features
 ## 4.1 Importing OBJ Files
 ### 4.1.1 Description and Priority
 
 This allows the user to import OBJ files so they can edit them. Users select an OBJ file from their storage and the system renders its geometry and its texture (through its complementary MTL file). The model appears in the 3D plan ready for editing.
 
-Priority: High (the core requirement of the application)
+**Priority:** High (the core requirement of the application)
 
-Benefit: 10
+**Benefit:** 10
 
-Penalty: 10
+**Penalty:** 10
 
-Cost: 3
+**Cost:** 3
 
-Risk: 3  
+**Risk:** 3  
   
 ### 4.1.2 Stimulus/Response Sequences
 
-User Action: User clicks Import Model.
+**User Action:** User clicks Import Model.
 
-System Response: File selection dialog appears.
+**System Response:** File selection dialog appears.
 
-User Action: User selects an OBJ file from their storage.
+**User Action:** User selects an OBJ file from their storage.
 
-System Response: The system reads the file and renders its geometry. If an MTL file is referenced, the system loads it. The model is then displayed on a 3D plane.
+**System Response:** The system reads the file and renders its geometry. If an MTL file is referenced, the system loads it. The model is then displayed on a 3D plane.
 
-User Action: User selects a file with missing material references.
+**User Action:** User selects a file with missing material references.
 
-System Response: System loads the geometry only and a warning message appears that the material info could not be found.
+**System Response:** System loads the geometry only and a warning message appears that the material info could not be found.
 
-User Action: User selects an invalid or corrupted  OBJ file.
+**User Action:** User selects an invalid or corrupted  OBJ file.
 
-System Response: System displays an error message and model is not added to the scene.
+**System Response:** System displays an error message and model is not added to the scene.
 
 ### 4.1.3 Functional Requirements
 
-IMP-REQ-1: The system allows users to import OBJ files.
+**IMP-REQ-1:** The system allows users to import OBJ files.
 
-IMP-REQ-2: The system parses all geometry from the OBJ file.
+**IMP-REQ-2:** The system parses all geometry from the OBJ file.
 
-IMP-REQ-3: The system detects and loads MTL files when referenced by the OBJ file.
+**IMP-REQ-3:** The system detects and loads MTL files when referenced by the OBJ file.
 
-IMP-REQ-4: The system displays the model in a 3D viewport.
+**IMP-REQ-4:** The system displays the model in a 3D viewport.
 
-IMP-REQ-5: The system displays a warning message if a referenced MTL file is not found.
+**IMP-REQ-5:** The system displays a warning message if a referenced MTL file is not found.
 
-IMP-REQ-6: The system displays an error message if the OBJ file is corrupted/unreadable.
+**IMP-REQ-6:** The system displays an error message if the OBJ file is corrupted/unreadable.
 
-IMP-REQ-7: The system displays an error message if the file is not of OBJ format.
+**IMP-REQ-7:** The system displays an error message if the file is not of OBJ format.
 
-IMP-REQ-8: The system shall prompt the user to manually select any texture images (PNG or JPG) referenced in the loaded MTL file.
+**IMP-REQ-8:** The system shall prompt the user to manually select any texture images (PNG or JPG) referenced in the loaded MTL file.
 ## 4.2 Model Transformation
 ### 4.2.1 Description and Priority
 
 This allows the user to move, rotate and scale imported OBJ files
 
-Priority: High
+**Priority:** High
 
-Benefit: 9
+**Benefit:** 9
 
-Penalty: 8
+**Penalty:** 8
 
-Cost: 5
+**Cost:** 5
 
-Risk: 4
+**Risk:** 4
 ### 4.2.2 Stimulus/Response Sequences
 
-User Action: User selects model.
+**User Action:** User selects model.
 
-System Response: System highlights model and displays transformation handles.
+**System Response:** System highlights model and displays transformation handles.
 
-User Action: User drags controls.
+**User Action:** User drags controls.
 
-System Response: System updates the models position, rotation and scale in real time.
+**System Response:** System updates the models position, rotation and scale in real time.
 
-User Action: User enters values manually.
+**User Action:** User enters values manually.
 
-System Response: System applies the exact transformation.  
+**System Response:** System applies the exact transformation.  
 
 ### 4.2.3 Functional Requirements  
   
 
-TRA-REQ-1: The system allows users to translate the model along the axes.
+**TRA-REQ-1:** The system allows users to translate the model along the axes.
 
-TRA-REQ-2: The system allows users to rotate the models on all axes.
+**TRA-REQ-2:** The system allows users to rotate the models on all axes.
 
-TRA-REQ-3: The system allows users to scale models uniformly/non-uniformly.
+**TRA-REQ-3:** The system allows users to scale models uniformly/non-uniformly.
 
-TRA-REQ-4: The system updates the model in the 3D viewport in real time.
+**TRA-REQ-4:** The system updates the model in the 3D viewport in real time.
 
-TRA-REQ-5: The system provides transformation controls.
+**TRA-REQ-5:** The system provides transformation controls.
 
-TRA-REQ-6: The system allows input of numeric transform values.
+**TRA-REQ-6:** The system allows input of numeric transform values.
 
-TRA-REQ-7: The system shall allow the model to snap to the grid.
+**TRA-REQ-7:** The system shall allow the model to snap to the grid.
 
 ## 4.3 Camera Controls
 ### 4.3.1 Description and Priority
 
 This allows the user to view the model using orbit, pan and zoom controls.
 
-Priority: High
+**Priority:** High
 
-Benefit: 8
+**Benefit:** 8
 
-Penalty: 6
+**Penalty:** 6
 
-Cost: 3
+**Cost:** 3
 
-Risk: 3  
+**Risk:** 3  
 ### 4.3.2 Stimulus/Response Sequences  
 
-User Action: User drags the mouse using left click.
+**User Action:** User drags the mouse using left click.
 
-System Response: The camera orbits the scene.
+**System Response:** The camera orbits the scene.
 
-User Action: User scrolls.
+**User Action:** User scrolls.
 
-System Response: Camera zooms in and out.
+**System Response:** Camera zooms in and out.
 
-User Action: User middle-click holds.
+**User Action:** User middle-click holds.
 
-System Response: Camera pans.
+**System Response:** Camera pans.
 
-User Action: User clicks Reset Camera.
+**User Action:** User clicks Reset Camera.
 
-System Response: Camera resets to default view.  
+**System Response:** Camera resets to default view.  
   
 ### 4.3.3 Functional Requirements  
   
-CAM-REQ-1: The system allows users to orbit a model around a focal point.
+**CAM-REQ-1:** The system allows users to orbit a model around a focal point.
 
-CAM-REQ-2: The system allows users to zoom in and out.
+**CAM-REQ-2:** The system allows users to zoom in and out.
 
-CAM-REQ-3: The system allows users to pan the camera.
+**CAM-REQ-3:** The system allows users to pan the camera.
 
-CAM-REQ-4: The system shall have a reset camera function.
+**CAM-REQ-4:** The system shall have a reset camera function.
 
-CAM-REQ-5: The system shall update camera movement smoothly.
+**CAM-REQ-5:** The system shall update camera movement smoothly.
 ## 4.4 Material Editing
 
 ### 4.4.1 Description and Priority
 
 This allows the user to edit the colours, textures and material properties of the model.
 
-Priority: Medium
+**Priority:** Medium
 
-Benefit: 6
+**Benefit:** 6
 
-Penalty: 5
+**Penalty:** 5
 
-Cost: 6
+**Cost:** 6
 
-Risk: 5  
+**Risk:** 5  
 ### 4.4.2 Stimulus/Response Sequences  
 
-User Action: User selects model.
+**User Action:** User selects model.
 
-System Response: System shows material properties in the side panel.
+**System Response:** System shows material properties in the side panel.
 
-User Action: User changes colour.
+**User Action:** User changes colour.
 
-System Response: The viewport shows the updated coloured model.
+**System Response:** The viewport shows the updated coloured model.
 
-User Action: User uploads texture.
+**User Action:** User uploads texture.
 
-System Response: System maps texture to model.  
+**System Response:** System maps texture to model.  
 ### 4.4.3 Functional Requirements  
 
-MAT-REQ-1: The system displays material settings when a model is selected.
+**MAT-REQ-1:** The system displays material settings when a model is selected.
 
-MAT-REQ-2: The system allows users to change a model's base colour.
+**MAT-REQ-2:** The system allows users to change a model's base colour.
 
-MAT-REQ-3: The system allows users to assign textures.
+**MAT-REQ-3:** The system allows users to assign textures.
 
-MAT-REQ-4: The system shall render changes of material in real time.
+**MAT-REQ-4:** The system shall render changes of material in real time.
 
-MAT-REQ-5: The system shall show a warning if a texture fails to load.
+**MAT-REQ-5:** The system shall show a warning if a texture fails to load.
 
-MAT-REQ-6: The system shall retain model proportions while mapping textures/colours.
+**MAT-REQ-6:** The system shall retain model proportions while mapping textures/colours.
 
 ## 4.5 Resizing Model Components
 
@@ -481,251 +483,259 @@ MAT-REQ-6: The system shall retain model proportions while mapping textures/colo
 
 This allows the user to alter dimensions of individual components of the entire model.
 
-Priority: Medium
+**Priority:** Medium
 
-Benefit: 7
+**Benefit:** 7
 
-Penalty: 5
+**Penalty:** 5
 
-Cost: 7
+**Cost:** 7
 
-Risk: 6  
+**Risk:** 6  
 ### 4.5.2 Stimulus/Response Sequences  
 
-User Action: User selects a model component.
+**User Action:** User selects a model component.
 
-System Response: System highlights it.
+**System Response:** System highlights it.
 
-User Action: User drags resize handle.
+**User Action:** User drags resize handle.
 
-System Response: System resizes and updates model.
+**System Response:** System resizes and updates model.
 
-User Action: User enters numeric values.
+**User Action:** User enters numeric values.
 
-System Response: System resizes and updates model.  
+**System Response:** System resizes and updates model.  
 ### 4.5.3 Functional Requirements  
 
-RES-REQ-1: The system allows users to scale objects or groups of an OBJ file.
+**RES-REQ-1:** The system allows users to scale objects or groups of an OBJ file.
 
-RES-REQ-2: The system visually indicates selected parts of the model.
+**RES-REQ-2:** The system visually indicates selected parts of the model.
 
-RES-REQ-3: The system supports numeric input for dimensions.
+**RES-REQ-3:** The system supports numeric input for dimensions.
 
-RES-REQ-4: The system shall maintain mesh integrity during resizing.
+**RES-REQ-4:** The system shall maintain mesh integrity during resizing.
 ## 4.6 Combining Models
 ### 4.6.1 Description and Priority  
   
 This allows the user to combine multiple OBJ files into a single model.
 
-Priority: Medium
+**Priority:** Medium
 
-Benefit: 6
+**Benefit:** 6
 
-Penalty: 4
+**Penalty:** 4
 
-Cost: 7
+**Cost:** 7
 
-Risk: 5  
+**Risk:** 5  
 ### 4.6.2 Stimulus/Response Sequences  
   
-User Action: User imports two or more models.
+**User Action:** User imports two or more models.
 
-System Response: System adds them to the scene.
+**System Response:** System adds them to the scene.
 
-User Action: User saves scene with multiple models.
+**User Action:** User saves scene with multiple models.
 
-System Response: System outputs a single OBJ file with the multiple models.  
+**System Response:** System outputs a single OBJ file with the multiple models.  
 ### 4.6.3 Functional Requirements
 
-COM-REQ-1: The system supports multiple OBJ files in the same scene.
+**COM-REQ-1:** The system supports multiple OBJ files in the same scene.
 
-COM-REQ-2: The system allows users to save the multiple model scene as one OBJ file.
+**COM-REQ-2:** The system allows users to save the multiple model scene as one OBJ file.
 
-COM-REQ-3: The system shall maintain the geometry and materials of each model when combining.
+**COM-REQ-3:** The system shall maintain the geometry and materials of each model when combining.
 ## 4.7 Exporting Models
 ### 4.7.1 Description and Priority  
   
 This allows the user to export the final model/scene into an OBJ file
 
-Priority: High
+**Priority:** High
 
-Benefit: 10
+**Benefit:** 10
 
-Penalty: 9
+**Penalty:** 9
 
-Cost: 5
+**Cost:** 5
 
-Risk: 5  
+**Risk:** 5  
 
 ### 4.7.2 Stimulus/Response Sequences  
 
-User Action: User clicks Export.
+**User Action:** User clicks Export.
 
-System Response: System prompts to save file.
+**System Response:** System prompts to save file.
 
-User Action: User selects where to save file.
+**User Action:** User selects where to save file.
 
-System Response: System downloads file.
+**System Response:** System downloads file.
 ### 4.7.3 Functional Requirements
 
-EXP-REQ-1: The system exports the model as an OBJ file.
+**EXP-REQ-1:** The system exports the model as an OBJ file.
 
-EXP-REQ-2: The system shall notify the user when the exporting is complete.
+**EXP-REQ-2:** The system shall notify the user when the exporting is complete.
 
-EXP-REQ-3: The system shall maintain the geometry and materials of each model when exporting.
+**EXP-REQ-3:** The system shall maintain the geometry and materials of each model when exporting.
 ## 4.8 Undo/Redo System
 ### 4.8.1 Description and Priority
 
 This allows the user to revert/reapply recent actions
 
-Priority: Medium
+**Priority:** Medium
 
-Benefit: 6
+**Benefit:** 6
 
-Penalty: 5
+**Penalty:** 5
 
-Cost: 6
+**Cost:** 6
 
-Risk: 6  
+**Risk:** 6  
 
 ### 4.8.2 Stimulus/Response Sequences  
   
-User Action: User presses Undo.
+**User Action:** User presses Undo.
 
-System Response: System's previous state is restored.
+**System Response:** System's previous state is restored.
 
-User Action: User presses Redo.
+**User Action:** User presses Redo.
 
-System Response: Undone action reapplied.  
+**System Response:** Undone action reapplied.  
 
 ### 4.8.3 Functional Requirements  
   
-UNDO-REQ-1: The system shall support Undo for any edit made.
+**UNDO-REQ-1:** The system shall support Undo for any edit made.
 
-UNDO-REQ-2: The system shall support Redo for any undone action.
+**UNDO-REQ-2:** The system shall support Redo for any undone action.
 
-UNDO-REQ-3: The system shall maintain an internal action history stack.
+**UNDO-REQ-3:** The system shall maintain an internal action history stack.
+
+---
 # 5. Other Non-functional Requirements
 ## 5.1 Performance Requirements
 
 ZenCG must maintain a low-latency, and lag-free performance during all operations to ensure a consistent experience. As it runs inside a browser, the performance must be consistent across a range of consumer hardware, allowing users without high-end computers to use the application.
 
-PER-REQ-1: The system shall maintain a minimum rendering framerate of 30FPS with a target of 60FPS.
+**PER-REQ-1:** The system shall maintain a minimum rendering framerate of 30FPS with a target of 60FPS.
 
-PER-REQ-2: The system shall load OBJ files (under 50MB) within 10 seconds.
+**PER-REQ-2:** The system shall load OBJ files (under 50MB) within 10 seconds.
 
-PER-REQ-3: The system shall respond to user actions within 100ms.
+**PER-REQ-3:** The system shall respond to user actions within 100ms.
 
-PER-REQ-4: Applying basic edits shall update the viewport in real time with no delay.
+**PER-REQ-4:** Applying basic edits shall update the viewport in real time with no delay.
 
-PER-REQ-5: The Undo/Redo state shall execute in under 1 second.
+**PER-REQ-5:** The Undo/Redo state shall execute in under 1 second.
 ## 5.2 Safety Requirements
 
 The system must ensure the safety of data and prevent loss of work unless wanted. As it is a web application, the safety requirements focus on protecting user-created data.
 
-SAF-REQ-1: The system shall provide an automatic save tab when the user attempts to close or refresh the browser tab.
+**SAF-REQ-1:** The system shall provide an automatic save tab when the user attempts to close or refresh the browser tab.
 
-SAF-REQ-2: The system shall prevent loading of corrupted OBJ models to protect it from crashes.
+**SAF-REQ-2:** The system shall prevent loading of corrupted OBJ models to protect it from crashes.
 
-SAF-REQ-3: The system shall prevent operations that exceed safe performance thresholds.
+**SAF-REQ-3:** The system shall prevent operations that exceed safe performance thresholds.
 
-SAF-REQ-4: The system shall lock user input when performing long-running tasks (e.g exporting a big model) and display a loading indicator to prevent the user from issuing conflicting commands.
+**SAF-REQ-4:** The system shall lock user input when performing long-running tasks (e.g exporting a big model) and display a loading indicator to prevent the user from issuing conflicting commands.
 ## 5.3 Security Requirements
 
 The system must prevent unauthorized access to protect user data and ensure that file imports and exports do not introduce vulnerabilities. Since ZenCG runs on a web browser, security focuses on local data protection and safe handling of external files.
 
-SEC-REQ-1: The system shall not upload user files to any external server.
+**SEC-REQ-1:** The system shall not upload user files to any external server.
 
-SEC-REQ-2: The system shall validate all imported files to make sure they do not include any malicious script.
+**SEC-REQ-2:** The system shall validate all imported files to make sure they do not include any malicious script.
 ## 5.4 Software Quality Attributes
 
 This describes the quality characteristics that ZenCG must meet in order to satisfy user expectations.
 
-QUA-REQ-1: The system shall have a rendering engine independent of the platform.
+**QUA-REQ-1:** The system shall have a rendering engine independent of the platform.
 
-QUA-REQ-2: Transformations shall produce mathematically correct results.
+**QUA-REQ-2:** Transformations shall produce mathematically correct results.
 
-QUA-REQ-3: The system shall preserve model geometry and detailing for imports and exports regarding OBJ files.
+**QUA-REQ-3:** The system shall preserve model geometry and detailing for imports and exports regarding OBJ files.
 
-QUA-REQ-4: The system UI shall adjust to many screen sizes.
+**QUA-REQ-4:** The system UI shall adjust to many screen sizes.
 
-QUA-REQ-5: The system shall run on any device supporting WebGL.
+**QUA-REQ-5:** The system shall run on any device supporting WebGL.
 
-QUA-REQ-6: The system editor shall respond to user actions within 100ms.
+**QUA-REQ-6:** The system editor shall respond to user actions within 100ms.
 ## 5.5 Business Rules
 
 This describes the business rules that ZenCG must adhere to, and standards or regulations that must be followed.
 
-BUS-REQ-1: The system shall be free to use for all users.
+**BUS-REQ-1:** The system shall be free to use for all users.
 
-BUS-REQ-2: The system shall prioritise usability and learnability.
+**BUS-REQ-2:** The system shall prioritise usability and learnability.
 
-BUS-REQ-3: The system shall support a maximum model size of 50MB to maintain stable performance, OBJ/MTL/Textures inclusive.
+**BUS-REQ-3:** The system shall support a maximum model size of 50MB to maintain stable performance, OBJ/MTL/Textures inclusive.
 
+---
 # 6. Other Requirements
 
 This section defines additional requirements not covered elsewhere in the SRS.  
 
-OTH-REQ-1: The UI shall support localization for English, with future capability for more languages.
+**OTH-REQ-1:** The UI shall support localization for English, with future capability for more languages.
 
-OTH-REQ-2: The system shall function correctly over HTTPS and shall enforce secure connections.
+**OTH-REQ-2:** The system shall function correctly over HTTPS and shall enforce secure connections.
 
-OTH-REQ-3: The system must support the latest version of browsers with WebGL compatibility.
+**OTH-REQ-3:** The system must support the latest version of browsers with WebGL compatibility.
 
-OTH-REQ-4: All third-party libraries such as Three.js must be clearly referenced and their licenses must be included in documentation.
+**OTH-REQ-4:** All third-party libraries such as Three.js must be clearly referenced and their licenses must be included in documentation.
+
+---
 # 7. Appendix
 
 ## 7.1 Glossary
 
-OBJ File: Plain-text 3D model file format including vertex co-ordinates, face definitions, normal vectors and material references.
+**OBJ File:** Plain-text 3D model file format including vertex co-ordinates, face definitions, normal vectors and material references.
 
-MTL File: A companion file to OBJ that defines colours, textures, transparency and lighting properties.
+**MTL File:** A companion file to OBJ that defines colours, textures, transparency and lighting properties.
 
-Three.js: A JavaScript 3D graphics library used for rendering models in a web browser using WebGL.
+**Three.js:** A JavaScript 3D graphics library used for rendering models in a web browser using WebGL.
 
-WebGL: A browser-based graphics API that allows rendering of 3D graphics using the hardware's GPU.
+**WebGL:** A browser-based graphics API that allows rendering of 3D graphics using the hardware's GPU.
 
-3D Model: A digital representation of an object. It has a height, width, and depth.
+**3D Model:** A digital representation of an object. It has a height, width, and depth.
 
-Mesh: 3D object composed of vertices, edges and faces.
+**Mesh:** 3D object composed of vertices, edges and faces.
 
-Vertex: A single point in 3D space used to build meshes.
+**Vertex:** A single point in 3D space used to build meshes.
 
-Texture: An image mapped onto a 3D model to give it colour and detail.
+**Texture:** An image mapped onto a 3D model to give it colour and detail.
 
-Material: A set of properties applied onto a mesh to control how it looks (color, shininess etc).
+**Material:** A set of properties applied onto a mesh to control how it looks (color, shininess etc).
 
-Scene: The virtual environment containing 3D objects, lighting and the camera.
+**Scene:** The virtual environment containing 3D objects, lighting and the camera.
 
-Viewport: The space in which you are able to view the virtual environment/scene.
+**Viewport:** The space in which you are able to view the virtual environment/scene.
 
-Camera: The viewpoint from which the user views the 3D scene.
+**Camera:** The viewpoint from which the user views the 3D scene.
 
-Transform: Operations applied to mesh such as translation, rotation or scaling.
+**Transform:** Operations applied to mesh such as translation, rotation or scaling.
 
-UI (User Interface): The visual elements through which the user interacts with ZenCG.
+**UI (User Interface):** The visual elements through which the user interacts with ZenCG.
 
-SRS (Software Requirements Specification): This document; defines all requirements for the system.
+**SRS (Software Requirements Specification):** This document; defines all requirements for the system.
 
-FPS (Frames Per Second): The amount of frames rendered by the GPU every second. Typical computers are capped at: 30, 60, 120, 144, 240, and 360 frames per second.
+**FPS (Frames Per Second):** The amount of frames rendered by the GPU every second. Typical computers are capped at: 30, 60, 120, 144, 240, and 360 frames per second.
 ## 7.2 Analysis Models
 
 ### 7.2.1 Use Case Diagram 
 
 ![Use Case Diagram](diagrams/use_case_diagram.png)
+
 **Figure 7.2.1 ZenCG Use Case Diagram**
 
 ### 7.2.2 Importing OBJ File Sequence Diagram
 
 ![Importing OBJ File Sequence Diagram](diagrams/import_sequence_diagram.png)
+
 **Figure 7.2.2 Importing OBJ File Sequence Diagram**
 ### 7.2.3 Undo / Redo Sequence Diagram
 
 ![Undo/Redo Sequence Diagram](diagrams/undo_sequence_diagram.png)
+
 **Figure 7.2.3 Undo and Redo Sequence Diagram**
 ## 7.3 To Be Determined List
 
-TBD-1: Cloud Rendering Functionality (Section 2.1.3, 2.4.2). Computational layer requirement, for offshore rendering farm use. Intensive rendering tasks handled on the cloud, relieving client-side computational limitations.
+**TBD-1**: Cloud Rendering Functionality (Section 2.1.3, 2.4.2). Computational layer requirement, for offshore rendering farm use. Intensive rendering tasks handled on the cloud, relieving client-side computational limitations.
 ## 7.4 Preliminary Schedule
 
 ![Preliminary Schedule](diagrams/preliminary_schedule.png)
