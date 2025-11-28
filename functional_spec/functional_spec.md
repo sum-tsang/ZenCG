@@ -1,6 +1,7 @@
-# ZenCG 3D Model Editor Web Application
 
-Prepared by Eoghan Brennan (23380443) and Sum Wai Tsang (23500156)
+# Software Requirements Specification for ZenCG 3D Model Editor Web Application
+
+Prepared by **Eoghan Brennan (23380443)** and **Sum Wai Tsang (23500156)**
 
 **Version 1.0**  
 
