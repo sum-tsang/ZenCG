@@ -741,4 +741,4 @@ This section defines additional requirements not covered elsewhere in the SRS.
 
 ![Preliminary Schedule](diagrams/preliminary_schedule.png)
 
-**Figure 7.4.1 Importing OBJ File Sequence Diagram**
+**Figure 7.4.1 Preliminary Schedule**
