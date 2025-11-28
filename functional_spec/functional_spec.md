@@ -1,17 +1,12 @@
-**  
 
 Software Requirements Specification
-
-  
 
 for
 
 ZenCG 3D Model Editor  
 Web Application
 
-  
-
-Eoghan Brennan (23380443)  
+Eoghan Brennan (23380443) 
 Sum Wai Tsang (23500156)
 
 Version 1.0  
@@ -22,7 +17,7 @@ Version 1.0
 
 Table of Contents
 
-[_TOC_]
+[[_TOC_]]
 
 Revision History
 
