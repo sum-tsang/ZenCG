@@ -283,7 +283,7 @@ The computational layer is adjourned, as highlighted in TBD-1, cloud-rendering i
 - Storage: Object storage for models and textures (Local filesystem for 3D models, textures, and exported projects).
     
 
-![[diagrams/system_architecture.png]]
+![System Architecture Diagram](diagrams/system_architecture.png)
 
 Figure 2.4.1 High Level Overview of System Architecture
 
