@@ -1,5 +1,3 @@
-**  
-
 Software Requirements Specification
 
   
@@ -279,16 +277,15 @@ For demonstration purposes, all server-side functionality will run locally, on t
 The computational layer is adjourned, as highlighted in TBD-1, cloud-rendering is out of scope in version 1.0 of ZenCG. Rendering will take place client-side for demonstration purposes. All rendering, interaction, and data persistence occur within the client browser.
 
 - Hosting: Local development server.
-    
 - Storage: Object storage for models and textures (Local filesystem for 3D models, textures, and exported projects).
-    
 
-![System Architecture Diagram](diagrams/system_architecture.png)
+
+![High Level Overview of System Architecture](diagrams/system_architecture.png)
 
 Figure 2.4.1 High Level Overview of System Architecture
 
 5. ## Design and Implementation Constraints
-    
+
 
 ZenCG is subject to many design and implementation constraints, which ensure system functionality, maintainability, and compatibility. There are constraints due to the system requirements, such as being browser-based, and limited to selected technologies.
 
@@ -444,10 +441,10 @@ A side panel will be accessible which will provide access to editing tools inclu
 
   
 
-![[diagrams/wireframe_1.png]]
+![Main Workspace Wireframe Prototype](diagrams/wireframe_1.png)
 Figure 3.1 Main Workspace Wireframe Prototype
 
-![[diagrams/wireframe_2.png]]
+![Integrated User Manual and Tutorials Wireframe Prototype](diagrams/wireframe_2.png)
 Figure 3.2 Integrated User Manual and Tutorials Wireframe Prototype
 
 2. ## Hardware Interfaces
@@ -1099,18 +1096,15 @@ SRS (Software Requirements Specification): This document; defines all requiremen
 
 ### 7.2.1 Use Case Diagram
 
-![[diagrams/use_case_diagram.png]]
+![Use Case Diagram](diagrams/use_case_diagram.png)
 ### 7.2.2 Importing OBJ File Sequence Diagram
 
-![[diagrams/import_sequence_diagram.png]]
+![Importing OBJ File Sequence Diagram](diagrams/import_sequence_diagram.png)
 ### 7.2.3 Undo / Redo Sequence Diagram
 
-![[diagrams/undo_sequence_diagram.png]]
+![Undo/Redo Sequence Diagram](diagrams/undo_sequence_diagram.png)
 
 ## 7.3 To Be Determined List
 
 TBD-1: Cloud Rendering Functionality (Section 2.1.3, 2.4.2). Computational layer requirement, for offshore rendering farm use. Intensive rendering tasks handled on the cloud, relieving client-side computational limitations.
-
 ## 7.4 Preliminary Schedule
-
-  
