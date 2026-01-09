@@ -43,8 +43,22 @@ body {
   color: #555;
 }
 
+#panel label {
+  font-size: 0.9rem;
+}
+
+#panel input[type="file"] {
+  font-size: 0.85rem;
+}
+
 #panel button {
   padding: 8px;
   border: 1px solid #ccc;
   background: #f6f6f6;
+}
+
+#status {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #555;
 }

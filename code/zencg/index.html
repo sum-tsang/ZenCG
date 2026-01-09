@@ -13,10 +13,20 @@
       </main>
       <aside id="panel">
         <h1>ZenCG</h1>
-        <button disabled>Import OBJ</button>
+        <label for="obj-input">Import OBJ</label>
+        <input id="obj-input" type="file" accept=".obj" />
         <button disabled>Export OBJ</button>
+        <p id="status">Waiting for OBJ file...</p>
       </aside>
     </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
     <script type="module" src="./src/app.js"></script>
   </body>
 </html>
