@@ -28,7 +28,14 @@ export function attachPanControls({ canvas, camera, target, renderer }) {
   const panRight = new THREE.Vector3();
   const panUp = new THREE.Vector3();
   const panTemp = new THREE.Vector3();
-  let isPanning = false;
+  const orbitOffset = new THREE.Vector3();
+  const orbitSpherical = new THREE.Spherical();
+  const rotateSpeed = 0.005;
+  const zoomSpeed = 0.0015;
+  const orbitMin = 0.01;
+  const minDistance = 0.2;
+  const maxDistance = 200;
+  let mode = null;
   let lastPointerX = 0;
   let lastPointerY = 0;
 
@@ -51,9 +58,35 @@ export function attachPanControls({ canvas, camera, target, renderer }) {
     target.add(panOffset);
   }
 
+  function orbitCamera(deltaX, deltaY) {
+    orbitOffset.copy(camera.position).sub(target);
+    orbitSpherical.setFromVector3(orbitOffset);
+    orbitSpherical.theta -= deltaX * rotateSpeed;
+    orbitSpherical.phi -= deltaY * rotateSpeed;
+    orbitSpherical.phi = Math.max(orbitMin, Math.min(Math.PI - orbitMin, orbitSpherical.phi));
+    orbitOffset.setFromSpherical(orbitSpherical);
+    camera.position.copy(target).add(orbitOffset);
+  }
+
+  function zoomCamera(deltaY) {
+    orbitOffset.copy(camera.position).sub(target);
+    orbitSpherical.setFromVector3(orbitOffset);
+    orbitSpherical.radius *= 1 + deltaY * zoomSpeed;
+    orbitSpherical.radius = Math.max(minDistance, Math.min(maxDistance, orbitSpherical.radius));
+    orbitOffset.setFromSpherical(orbitSpherical);
+    camera.position.copy(target).add(orbitOffset);
+  }
+
   function onPointerDown(event) {
     if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
-      isPanning = true;
+      mode = "pan";
+    } else if (event.button === 0) {
+      mode = "orbit";
+    } else {
+      mode = null;
+    }
+
+    if (mode) {
       lastPointerX = event.clientX;
       lastPointerY = event.clientY;
       canvas.setPointerCapture(event.pointerId);
@@ -61,7 +94,7 @@ export function attachPanControls({ canvas, camera, target, renderer }) {
   }
 
   function onPointerMove(event) {
-    if (!isPanning) {
+    if (!mode) {
       return;
     }
 
@@ -69,22 +102,32 @@ export function attachPanControls({ canvas, camera, target, renderer }) {
     const deltaY = event.clientY - lastPointerY;
     lastPointerX = event.clientX;
     lastPointerY = event.clientY;
-    panCamera(deltaX, deltaY);
+
+    if (mode === "pan") {
+      panCamera(deltaX, deltaY);
+    } else if (mode === "orbit") {
+      orbitCamera(deltaX, deltaY);
+    }
   }
 
   function onPointerUp(event) {
-    if (isPanning) {
-      isPanning = false;
+    if (mode) {
+      mode = null;
       canvas.releasePointerCapture(event.pointerId);
     }
   }
 
   function onPointerLeave() {
-    isPanning = false;
+    mode = null;
   }
 
   function onContextMenu(event) {
     event.preventDefault();
+  }
+
+  function onWheel(event) {
+    event.preventDefault();
+    zoomCamera(event.deltaY);
   }
 
   canvas.addEventListener("contextmenu", onContextMenu);
@@ -92,6 +135,7 @@ export function attachPanControls({ canvas, camera, target, renderer }) {
   canvas.addEventListener("pointermove", onPointerMove);
   canvas.addEventListener("pointerup", onPointerUp);
   canvas.addEventListener("pointerleave", onPointerLeave);
+  canvas.addEventListener("wheel", onWheel, { passive: false });
 
   return () => {
     canvas.removeEventListener("contextmenu", onContextMenu);
@@ -99,5 +143,6 @@ export function attachPanControls({ canvas, camera, target, renderer }) {
     canvas.removeEventListener("pointermove", onPointerMove);
     canvas.removeEventListener("pointerup", onPointerUp);
     canvas.removeEventListener("pointerleave", onPointerLeave);
+    canvas.removeEventListener("wheel", onWheel);
   };
 }
