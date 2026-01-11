@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZenCG Project Blog</title>
+    <meta name="description" content="Development process and design decisions for ZenCG." />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>ZenCG Project Blog</h1>
+        <p>Development process, major decisions, and milestones.</p>
+      </header>
+
+      <main>
+        <section id="list-view">
+          <h2>Posts</h2>
+          <ul id="post-list" class="post-list"></ul>
+        </section>
+
+        <section id="post-view" hidden>
+          <a id="back-link" href="#">Back to all posts</a>
+          <h2 id="post-title"></h2>
+          <p id="post-meta"></p>
+          <article id="post-content" class="post"></article>
+        </section>
+
+        <noscript>
+          <p>This blog needs JavaScript to render Markdown.</p>
+        </noscript>
+      </main>
+
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

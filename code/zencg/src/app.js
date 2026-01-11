@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createCamera, frameObject, attachPanControls } from "./camera_controls/index.js";
-import { setupObjImport } from "./importing/index.js";
+import { setupObjImport } from "./import_export/index.js";
 
 const canvas = document.getElementById("viewport-canvas");
 const fileInput = document.getElementById("obj-input");
