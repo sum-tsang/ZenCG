@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Editor - ZenCG</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <main id="viewport">
+        <canvas id="viewport-canvas" aria-label="3D viewport"></canvas>
+      </main>
+      <aside id="panel">
+        <h1>ZenCG Editor</h1>
+        <label for="obj-input">Import OBJ</label>
+        <input id="obj-input" type="file" accept=".obj" />
+        <button id="obj-export" disabled>Export OBJ</button>
+        <p id="status">Waiting for OBJ file...</p>
+      </aside>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
