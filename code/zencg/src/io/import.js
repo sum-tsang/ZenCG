@@ -1,6 +1,13 @@
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
-export function setupObjImport({ fileInput, scene, frameObject, setStatus }) {
+export function setupObjImport({
+  fileInput,
+  scene,
+  frameObject,
+  setStatus,
+  onObjectLoaded,
+  onTextLoaded,
+}) {
   if (!(fileInput instanceof HTMLInputElement)) {
     throw new Error("OBJ input not found.");
   }
@@ -26,6 +33,8 @@ export function setupObjImport({ fileInput, scene, frameObject, setStatus }) {
     currentObject = object;
     scene.add(object);
     frameObject(object);
+    onObjectLoaded?.(object);
+    onTextLoaded?.(text, filename);
     setStatus?.(`Loaded ${filename}`);
   }
 
@@ -67,4 +76,6 @@ export function setupObjImport({ fileInput, scene, frameObject, setStatus }) {
       handleFile(input.files?.[0] ?? null);
     }
   });
+
+  return { loadFromText: loadObjFromText };
 }

@@ -11,6 +11,7 @@ if (!postList || !postTitle || !postMeta || !postContent || !backLink) {
 }
 
 let posts = [];
+const baseUrl = new URL(".", import.meta.url);
 
 function escapeHtml(text) {
   return text
@@ -158,7 +159,7 @@ async function renderPost(slug) {
   showPost();
 
   try {
-    const response = await fetch(`./posts/${post.slug}.md`);
+    const response = await fetch(new URL(`posts/${post.slug}.md`, baseUrl));
     if (!response.ok) {
       throw new Error("Failed to load post");
     }
@@ -183,7 +184,7 @@ function onRouteChange() {
 
 async function init() {
   try {
-    const response = await fetch("./posts.json");
+    const response = await fetch(new URL("posts.json", baseUrl));
     posts = await response.json();
     posts.sort((a, b) => (a.date < b.date ? 1 : -1));
     renderPostList();

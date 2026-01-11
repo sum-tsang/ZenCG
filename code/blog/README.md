@@ -28,7 +28,7 @@ Summary paragraph: what changed and why it matters.
 ```json
 {
   "slug": "2026-01-15-your-title",
-  "title": "Your post title",
+  "title": "Your post title",1
   "date": "2026-01-15"
 }
 ```
