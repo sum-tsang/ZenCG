@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Blog - ZenCG</title>
     <meta name="description" content="Development process and design decisions for ZenCG." />
+    <script>
+      if (!window.location.pathname.endsWith("/") && window.location.pathname.endsWith("/blog")) {
+        window.location.replace(`${window.location.pathname}/${window.location.search}${window.location.hash}`);
+      }
+    </script>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
@@ -21,7 +26,7 @@
         </section>
 
         <section id="post-view" hidden>
-          <a id="back-link" href="#">Back to all posts</a>
+          <a id="back-link" href="./">Back to all posts</a>
           <h2 id="post-title"></h2>
           <p id="post-meta"></p>
           <article id="post-content" class="post"></article>

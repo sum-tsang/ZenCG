@@ -199,8 +199,10 @@ async function init() {
 }
 
 window.addEventListener("hashchange", onRouteChange);
-backLink.addEventListener("click", () => {
-  window.location.hash = "";
+backLink.addEventListener("click", (event) => {
+  event.preventDefault();
+  history.replaceState(null, "", window.location.pathname + window.location.search);
+  showList();
 });
 
 init();
