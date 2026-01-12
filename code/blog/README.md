@@ -2,6 +2,14 @@
 
 This blog is a static site that renders Markdown in the browser.
 
+## File map
+
+- `index.html`: Blog shell and layout.
+- `blog.js`: Client-side router, Markdown renderer, and post loader.
+- `blog.css`: Blog styling.
+- `posts.json`: Post index (list view).
+- `posts/`: Markdown content for each post.
+
 ## Add a new post
 
 1) Create a new markdown file in `code/blog/posts/`, e.g.:
@@ -28,10 +36,12 @@ Summary paragraph: what changed and why it matters.
 ```json
 {
   "slug": "2026-01-15-your-title",
-  "title": "Your post title",1
+  "title": "Your post title",
   "date": "2026-01-15"
 }
 ```
+
+The `slug` must match the filename without `.md`, and the `date` should be ISO format.
 
 ## Local preview
 
