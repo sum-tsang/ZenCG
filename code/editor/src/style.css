@@ -62,3 +62,138 @@ body {
   font-size: 0.85rem;
   color: #555;
 }
+
+.panel-divider {
+  margin: 12px 0;
+  border: none;
+  border-top: 1px solid #ddd;
+}
+
+/* Transformation Panel Styles */
+.transform-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.transform-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mode-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 6px;
+  font-size: 0.75rem;
+  border: 1px solid #bbb;
+  background: #e8e8e8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 3px;
+}
+
+.mode-btn:hover {
+  background: #d8d8d8;
+}
+
+.mode-btn.active {
+  background: #4a9eff;
+  color: white;
+  border-color: #2a7edf;
+}
+
+.mode-btn.translate.active {
+  background: #ff6b6b;
+}
+
+.mode-btn.rotate.active {
+  background: #ffa500;
+}
+
+.mode-btn.scale.active {
+  background: #51cf66;
+}
+
+.transform-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.input-row label {
+  width: 20px;
+  min-width: 20px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.label-x {
+  color: #ff0000;
+}
+
+.label-y {
+  color: #00aa00;
+}
+
+.label-z {
+  color: #0000ff;
+}
+
+.input-row input {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-family: "Courier New", monospace;
+}
+
+.input-row input:focus {
+  outline: none;
+  border-color: #4a9eff;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+.reset-btn {
+  padding: 6px;
+  margin-top: 4px;
+  border: 1px solid #ccc;
+  background: #f0f0f0;
+  cursor: pointer;
+  font-size: 0.85rem;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.reset-btn:hover {
+  background: #e0e0e0;
+  border-color: #999;
+}
+
+.reset-btn:active {
+  background: #d0d0d0;
+}

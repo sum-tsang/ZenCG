@@ -3,6 +3,7 @@ import { createCamera, frameObject } from "./camera/camera.js";
 import { attachControls } from "./controls/attachControls.js";
 import { setupObjImport } from "./io/import.js";
 import { setupObjExport } from "./io/export.js";
+import { TransformationManager } from "./model_transformation/manager.js";
 
 const canvas = document.getElementById("viewport-canvas");
 const fileInput = document.getElementById("obj-input");
@@ -127,6 +128,8 @@ const importer = setupObjImport({
   onObjectLoaded: (object) => {
     currentObject = object;
     exportButton.disabled = false;
+    // Set the loaded object in transformation manager
+    transformationManager.setObject(object);
   },
   onTextLoaded: (text, filename) => {
     saveLastObj(text, filename);
@@ -140,6 +143,14 @@ setupObjExport({
 });
 
 attachControls({ canvas, camera, target, renderer });
+
+// Initialize transformation tools
+const transformationManager = new TransformationManager(
+  scene,
+  canvas,
+  "transformation-panel-container"
+);
+transformationManager.setCamera(camera);
 
 function resize() {
   const width = Math.max(1, canvas.clientWidth);
