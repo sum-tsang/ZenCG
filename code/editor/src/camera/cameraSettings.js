@@ -2,7 +2,7 @@ import { createPan } from "./pan.js";
 import { createOrbit } from "./orbit.js";
 import { createZoom } from "./zoom.js";
 
-export function attachControls({ canvas, camera, target, renderer }) {
+export function attachCameraControls({ canvas, camera, target, renderer }) {
   const pan = createPan({ camera, target, renderer });
   const orbit = createOrbit({ camera, target });
   const zoom = createZoom({ camera, target });

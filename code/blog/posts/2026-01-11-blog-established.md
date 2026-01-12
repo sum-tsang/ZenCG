@@ -31,13 +31,12 @@ The editor repo contains all our functions, bundled in the /src directory. Follo
 
 ```
 editor/src/camera
-editor/src/combining_models
-editor/src/controls
+editor/src/combiningModels
 editor/src/io
-editor/src/material_editing
-editor/src/model_transformation
-editor/src/resizing_model_components
-editor/src/undo_redo
+editor/src/materialEditing
+editor/src/modelTransformation
+editor/src/resizingModelComponents
+editor/src/history
 ```
 
 ### 2. Editor

@@ -5,7 +5,7 @@ import {
   UndoHistory,
   applyTransformSnapshot,
   createTransformSnapshot,
-} from "../undo_redo/undo.js";
+} from "../history/undo.js";
 
 /**
  * TransformationManager - Orchestrates the 3D gizmo and UI panel

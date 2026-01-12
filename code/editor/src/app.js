@@ -1,9 +1,9 @@
 import * as THREE from "three";
 import { createCamera, frameObject } from "./camera/camera.js";
-import { attachControls } from "./controls/attachControls.js";
+import { attachCameraControls } from "./camera/cameraSettings.js";
 import { setupObjImport } from "./io/import.js";
 import { setupObjExport } from "./io/export.js";
-import { TransformationManager } from "./model_transformation/manager.js";
+import { TransformationManager } from "./modelTransformation/manager.js";
 
 const canvas = document.getElementById("viewport-canvas");
 const fileInput = document.getElementById("obj-input");
@@ -150,7 +150,7 @@ setupObjExport({
   setStatus,
 });
 
-attachControls({ canvas, camera, target, renderer });
+attachCameraControls({ canvas, camera, target, renderer });
 
 // Initialize transformation tools
 const transformationManager = new TransformationManager(

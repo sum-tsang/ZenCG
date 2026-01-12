@@ -85,7 +85,7 @@ Orchestrates gizmo and panel interactions:
 ### Basic Setup
 
 ```javascript
-import { TransformationManager } from "./model_transformation/manager.js";
+import { TransformationManager } from "./modelTransformation/manager.js";
 
 // Create manager
 const transformationManager = new TransformationManager(
