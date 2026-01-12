@@ -39,6 +39,14 @@ function setStatus(message) {
   }
 }
 
+function isEditableTarget(target) {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target?.isContentEditable
+  );
+}
+
 let currentObject = null;
 
 function openDb() {
@@ -151,6 +159,21 @@ const transformationManager = new TransformationManager(
   "transformation-panel-container"
 );
 transformationManager.setCamera(camera);
+
+document.addEventListener("keydown", (event) => {
+  if (isEditableTarget(event.target)) return;
+
+  const isUndo =
+    (event.ctrlKey || event.metaKey) &&
+    !event.shiftKey &&
+    event.key.toLowerCase() === "z";
+
+  if (!isUndo) return;
+
+  if (transformationManager.undo()) {
+    event.preventDefault();
+  }
+});
 
 function resize() {
   const width = Math.max(1, canvas.clientWidth);

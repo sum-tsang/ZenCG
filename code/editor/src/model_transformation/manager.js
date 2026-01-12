@@ -1,6 +1,11 @@
 import { TransformationGizmo } from "./gizmo.js";
 import { TransformationPanel } from "./panel.js";
 import * as THREE from "three";
+import {
+  UndoHistory,
+  applyTransformSnapshot,
+  createTransformSnapshot,
+} from "../undo_redo/undo.js";
 
 /**
  * TransformationManager - Orchestrates the 3D gizmo and UI panel
@@ -13,6 +18,8 @@ export class TransformationManager {
     this.currentObject = null;
     this.camera = null;
     this.selectedObject = null;
+    this.undoHistory = new UndoHistory();
+    this.wasDraggingGizmo = false;
 
     // Initialize gizmo and panel
     this.gizmo = new TransformationGizmo(scene);
@@ -37,6 +44,7 @@ export class TransformationManager {
         }
         this.selectedObject.scale.copy(transform.scale);
         this.gizmo.updateGizmoPosition();
+        this.recordSnapshot();
       }
     });
 
@@ -58,8 +66,12 @@ export class TransformationManager {
     if (!this.camera) return;
 
     // Check if clicking on gizmo
+    this.wasDraggingGizmo = false;
     const gizmoHandled = this.gizmo.onMouseDown(event, this.camera, this.canvas);
-    if (gizmoHandled) return;
+    if (gizmoHandled) {
+      this.wasDraggingGizmo = true;
+      return;
+    }
 
     // Otherwise, try to select a model
     const rect = this.canvas.getBoundingClientRect();
@@ -94,6 +106,10 @@ export class TransformationManager {
 
   onMouseUp(event) {
     this.gizmo.onMouseUp();
+    if (this.wasDraggingGizmo) {
+      this.recordSnapshot();
+      this.wasDraggingGizmo = false;
+    }
   }
 
   setObject(object) {
@@ -102,6 +118,7 @@ export class TransformationManager {
   }
 
   selectObject(object) {
+    const selectionChanged = this.selectedObject !== object;
     this.selectedObject = object;
     if (object) {
       this.gizmo.setObject(object);
@@ -112,6 +129,13 @@ export class TransformationManager {
     } else {
       this.gizmo.hide();
     }
+    if (selectionChanged) {
+      if (object) {
+        this.resetUndoHistory();
+      } else {
+        this.undoHistory.clear();
+      }
+    }
   }
 
   setCamera(camera) {
@@ -120,6 +144,27 @@ export class TransformationManager {
 
   setMode(mode) {
     this.gizmo.setMode(mode);
+  }
+
+  resetUndoHistory() {
+    this.undoHistory.clear();
+    this.recordSnapshot();
+  }
+
+  recordSnapshot() {
+    if (!this.selectedObject) return;
+    const snapshot = createTransformSnapshot(this.selectedObject);
+    this.undoHistory.record(snapshot);
+  }
+
+  undo() {
+    const snapshot = this.undoHistory.undo();
+    if (!snapshot) return false;
+    if (snapshot.object !== this.selectedObject) return false;
+    applyTransformSnapshot(snapshot);
+    this.gizmo.updateGizmoPosition();
+    this.panel.updatePanelFromObject();
+    return true;
   }
 
   dispose() {
