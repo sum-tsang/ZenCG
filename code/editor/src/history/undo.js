@@ -86,6 +86,7 @@ export class UndoHistory {
 
     if (this.stack.length > this.limit) {
       this.stack.shift();
+      this.index -= 1;
     }
 
     this.index = this.stack.length - 1;

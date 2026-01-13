@@ -51,6 +51,12 @@ function isEditableTarget(target) {
   );
 }
 
+function isTransformPanelTarget(target) {
+  return target instanceof HTMLElement
+    ? Boolean(target.closest("#transformation-panel-container"))
+    : false;
+}
+
 // Current object
 let currentObject = null;
 
@@ -171,14 +177,20 @@ const transformationManager = new TransformationManager(
 );
 transformationManager.setCamera(camera);
 
-// Undo shortcut
+// Undo
 document.addEventListener("keydown", (event) => {
-  if (isEditableTarget(event.target)) return;
+  if (isEditableTarget(event.target) && !isTransformPanelTarget(event.target)) return;
 
-  const isUndo =
-    (event.ctrlKey || event.metaKey) &&
-    !event.shiftKey &&
-    event.key.toLowerCase() === "z";
+  const hasModifier = event.ctrlKey || event.metaKey;
+  if (!hasModifier) return;
+
+  const key = event.key.toLowerCase();
+  let isUndo = key === "undo" || (key === "z" && !event.shiftKey);
+
+  if (!isUndo) {
+    const code = event.code;
+    isUndo = code === "KeyZ" && !event.shiftKey;
+  }
 
   if (!isUndo) return;
 
