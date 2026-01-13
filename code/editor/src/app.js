@@ -23,12 +23,17 @@ if (!(exportButton instanceof HTMLButtonElement)) {
 }
 
 // Renderer
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.setClearColor(0x111111, 1);
+renderer.setClearColor(0x000000, 0);
 
 const scene = new THREE.Scene();
 const { camera, target } = createCamera();
+
+const grid = new THREE.GridHelper(200, 20, 0x545454, 0x545454);
+grid.material.transparent = true;
+grid.material.opacity = 0.5;
+scene.add(grid);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
