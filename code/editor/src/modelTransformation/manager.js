@@ -101,7 +101,13 @@ export class TransformationManager {
 
   onMouseMove(event) {
     if (!this.camera) return;
-    this.gizmo.onMouseMove(event, this.camera, this.canvas);
+    // If the gizmo is currently dragging, route movement to the gizmo move handler
+    if (this.gizmo.isDragging) {
+      this.gizmo.onMouseMove(event, this.camera, this.canvas);
+    } else {
+      // Otherwise update hover highlights/cursor
+      if (this.gizmo.highlightUnderMouse) this.gizmo.highlightUnderMouse(event, this.camera, this.canvas);
+    }
   }
 
   onMouseUp(event) {
