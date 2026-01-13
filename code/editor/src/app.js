@@ -5,6 +5,7 @@ import { setupObjImport } from "./io/import.js";
 import { setupObjExport } from "./io/export.js";
 import { TransformationManager } from "./modelTransformation/manager.js";
 
+// DOM hooks
 const canvas = document.getElementById("viewport-canvas");
 const fileInput = document.getElementById("obj-input");
 const exportButton = document.getElementById("obj-export");
@@ -21,6 +22,7 @@ if (!(exportButton instanceof HTMLButtonElement)) {
   throw new Error("OBJ export button not found.");
 }
 
+// Renderer
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setClearColor(0x111111, 1);
@@ -33,12 +35,14 @@ const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
 keyLight.position.set(5, 6, 4);
 scene.add(keyLight);
 
+// Status
 function setStatus(message) {
   if (status) {
     status.textContent = message;
   }
 }
 
+// Input guard
 function isEditableTarget(target) {
   return (
     target instanceof HTMLInputElement ||
@@ -47,8 +51,10 @@ function isEditableTarget(target) {
   );
 }
 
+// Current object
 let currentObject = null;
 
+// IndexedDB
 function openDb() {
   return new Promise((resolve, reject) => {
     if (!("indexedDB" in window)) {
@@ -68,6 +74,7 @@ function openDb() {
   });
 }
 
+// Save last OBJ
 function saveLastObj(text, name) {
   openDb()
     .then((db) => {
@@ -85,6 +92,7 @@ function saveLastObj(text, name) {
     });
 }
 
+// Load last OBJ
 function loadLastObj() {
   return openDb()
     .then(
@@ -128,6 +136,7 @@ function loadLastObj() {
     });
 }
 
+// Import
 const importer = setupObjImport({
   fileInput,
   scene,
@@ -136,7 +145,7 @@ const importer = setupObjImport({
   onObjectLoaded: (object) => {
     currentObject = object;
     exportButton.disabled = false;
-    // Set the loaded object in transformation manager
+    // Sync selection
     transformationManager.setObject(object);
   },
   onTextLoaded: (text, filename) => {
@@ -144,15 +153,17 @@ const importer = setupObjImport({
   },
 });
 
+// Export
 setupObjExport({
   button: exportButton,
   getObject: () => currentObject,
   setStatus,
 });
 
+// Camera controls
 attachCameraControls({ canvas, camera, target, renderer });
 
-// Initialize transformation tools
+// Transform tools
 const transformationManager = new TransformationManager(
   scene,
   canvas,
@@ -160,6 +171,7 @@ const transformationManager = new TransformationManager(
 );
 transformationManager.setCamera(camera);
 
+// Undo shortcut
 document.addEventListener("keydown", (event) => {
   if (isEditableTarget(event.target)) return;
 
@@ -170,11 +182,11 @@ document.addEventListener("keydown", (event) => {
 
   if (!isUndo) return;
 
-  if (transformationManager.undo()) {
-    event.preventDefault();
-  }
+  event.preventDefault();
+  transformationManager.undo();
 });
 
+// Resize
 function resize() {
   const width = Math.max(1, canvas.clientWidth);
   const height = Math.max(1, canvas.clientHeight);
@@ -184,6 +196,7 @@ function resize() {
   renderer.setSize(width, height, false);
 }
 
+// Render loop
 function render() {
   camera.lookAt(target);
   renderer.render(scene, camera);
@@ -191,10 +204,12 @@ function render() {
 }
 
 window.addEventListener("resize", resize);
+// Startup
 setStatus("Waiting for OBJ file...");
 resize();
 render();
 
+// Restore last OBJ
 loadLastObj().then((restored) => {
   if (restored && importer?.loadFromText) {
     setStatus("Restoring previous OBJ...");
