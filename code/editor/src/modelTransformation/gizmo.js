@@ -182,20 +182,9 @@ export class TransformationGizmo {
 
   updateGizmoPosition() {
     if (!this.object) return;
-
-    // Use world transforms so the gizmo matches the object's world-space
-    // position/rotation/scale even when the object is nested under a parent
-    const worldPos = new THREE.Vector3();
-    const worldQuat = new THREE.Quaternion();
-    const worldScale = new THREE.Vector3();
-
-    this.object.getWorldPosition(worldPos);
-    this.object.getWorldQuaternion(worldQuat);
-    this.object.getWorldScale(worldScale);
-
-    this.gizmoGroup.position.copy(worldPos);
-    this.gizmoGroup.quaternion.copy(worldQuat);
-    this.gizmoGroup.scale.copy(worldScale);
+    this.gizmoGroup.position.copy(this.object.position);
+    this.gizmoGroup.rotation.copy(this.object.rotation);
+    this.gizmoGroup.scale.copy(this.object.scale);
   }
 
   updateGizmoAppearance() {
@@ -397,12 +386,10 @@ export class TransformationGizmo {
   }
 
   handleScale(event) {
-    // Use vertical mouse movement relative to the initial click to compute
-    // a stable multiplicative scale factor. Use an exponential mapping so
-    // scaling is smooth and symmetric and never flips sign.
+    // Use vertical mouse movement to compute a multiplicative scale factor.
     const sensitivity = 0.005; // adjust to taste
-    const dy = this.startMouseScreenY - event.clientY;
-    const factor = Math.exp(dy * sensitivity);
+    const dy = this.lastMouseScreenY - event.clientY;
+    const factor = 1 + dy * sensitivity;
 
     const scale = this.initialScale.clone();
     if (this.axis === "x") {
@@ -411,15 +398,11 @@ export class TransformationGizmo {
       scale.y = Math.max(0.01, this.initialScale.y * factor);
     } else if (this.axis === "z") {
       scale.z = Math.max(0.01, this.initialScale.z * factor);
-    } else {
-      // Uniform scale if axis isn't specified
-      scale.multiplyScalar(factor);
-      scale.x = Math.max(0.01, scale.x);
-      scale.y = Math.max(0.01, scale.y);
-      scale.z = Math.max(0.01, scale.z);
     }
 
     this.object.scale.copy(scale);
+    // update last mouse Y so movement is incremental
+    this.lastMouseScreenY = event.clientY;
   }
 
   getAxisVector() {
