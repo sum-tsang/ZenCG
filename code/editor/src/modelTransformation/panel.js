@@ -15,6 +15,7 @@ export class TransformationPanel {
     this.transformObject = null;
     this.isUpdatingFromGizmo = false;
     this.currentMode = "translate";
+    this.historyList = null;
 
     // State tracking
     this.state = {
@@ -86,7 +87,16 @@ export class TransformationPanel {
     resetSection.appendChild(resetBtn);
     panel.appendChild(resetSection);
 
+    // History section
+    const historySection = this.createSection("History");
+    historySection.classList.add("history-section");
+    this.historyList = document.createElement("ul");
+    this.historyList.className = "history-list";
+    historySection.appendChild(this.historyList);
+    panel.appendChild(historySection);
+
     this.container.appendChild(panel);
+    this.renderHistory([]);
     this.setupListeners();
   }
 
@@ -141,10 +151,10 @@ export class TransformationPanel {
       }
 
       input.addEventListener("input", (e) =>
-        this.onInputChange(e.target)
+        this.onInputChange(e.target, false)
       );
       input.addEventListener("change", (e) =>
-        this.onInputChange(e.target)
+        this.onInputChange(e.target, true)
       );
 
       row.appendChild(labelEl);
@@ -188,7 +198,7 @@ export class TransformationPanel {
     }
   }
 
-  onInputChange(input) {
+  onInputChange(input, commit = false) {
     const property = input.dataset.property;
     const axis = input.dataset.axis;
     const value = parseFloat(input.value) || 0;
@@ -196,10 +206,10 @@ export class TransformationPanel {
     this.state[property][axis] = value;
 
     // Apply transformation
-    this.applyTransformation();
+    this.applyTransformation({ commit });
   }
 
-  applyTransformation() {
+  applyTransformation({ commit = false } = {}) {
     if (!this.transformObject || this.isUpdatingFromGizmo) return;
 
     const { position, rotation, scale } = this.state;
@@ -235,6 +245,9 @@ export class TransformationPanel {
         position: this.transformObject.position.clone(),
         rotation: this.transformObject.rotation.clone(),
         scale: this.transformObject.scale.clone(),
+        mode: this.currentMode,
+        commit,
+        source: "panel",
       });
     }
   }
@@ -334,12 +347,40 @@ export class TransformationPanel {
         position: this.transformObject.position.clone(),
         rotation: this.transformObject.rotation.clone(),
         scale: this.transformObject.scale.clone(),
+        mode: this.currentMode,
+        commit: true,
+        source: "reset",
+        action: "reset",
       });
     }
   }
 
   onTransform(callback) {
     this.listeners.onTransform = callback;
+  }
+
+  getCurrentMode() {
+    return this.currentMode;
+  }
+
+  renderHistory(entries = []) {
+    if (!this.historyList) return;
+    this.historyList.innerHTML = "";
+
+    if (!entries.length) {
+      const empty = document.createElement("li");
+      empty.className = "history-item history-empty";
+      empty.textContent = "No actions yet";
+      this.historyList.appendChild(empty);
+      return;
+    }
+
+    entries.forEach((entry) => {
+      const item = document.createElement("li");
+      item.className = "history-item";
+      item.textContent = entry;
+      this.historyList.appendChild(item);
+    });
   }
 
   updateFromGizmo(transform) {
