@@ -6,6 +6,7 @@ import {
   applyTransformSnapshot,
   createTransformSnapshot,
 } from "../history/undo.js";
+import { ActionHistory } from "../history/actionHistory.js";
 
 /**
  * TransformationManager - Orchestrates the 3D gizmo and UI panel
@@ -19,6 +20,7 @@ export class TransformationManager {
     this.camera = null;
     this.selectedObject = null;
     this.undoHistory = new UndoHistory();
+    this.actionHistory = new ActionHistory();
     this.wasDraggingGizmo = false;
 
     // Initialize gizmo and panel
@@ -44,7 +46,8 @@ export class TransformationManager {
         }
         this.selectedObject.scale.copy(transform.scale);
         this.gizmo.updateGizmoPosition();
-        this.recordSnapshot();
+        const action = transform?.commit ? transform.action || transform.mode : null;
+        this.recordSnapshot(action);
       }
     });
 
@@ -107,7 +110,7 @@ export class TransformationManager {
   onMouseUp(event) {
     this.gizmo.onMouseUp();
     if (this.wasDraggingGizmo) {
-      this.recordSnapshot();
+      this.recordSnapshot(this.gizmo.mode);
       this.wasDraggingGizmo = false;
     }
   }
@@ -134,6 +137,8 @@ export class TransformationManager {
         this.resetUndoHistory();
       } else {
         this.undoHistory.clear();
+        this.actionHistory.clear();
+        this.panel.renderHistory([]);
       }
     }
   }
@@ -148,13 +153,18 @@ export class TransformationManager {
 
   resetUndoHistory() {
     this.undoHistory.clear();
+    this.actionHistory.clear();
+    this.panel.renderHistory([]);
     this.recordSnapshot();
   }
 
-  recordSnapshot() {
+  recordSnapshot(action) {
     if (!this.selectedObject) return;
     const snapshot = createTransformSnapshot(this.selectedObject);
-    this.undoHistory.record(snapshot);
+    const recorded = this.undoHistory.record(snapshot);
+    if (recorded && action) {
+      this.logAction(action);
+    }
   }
 
   undo() {
@@ -164,7 +174,33 @@ export class TransformationManager {
     applyTransformSnapshot(snapshot);
     this.gizmo.updateGizmoPosition();
     this.panel.updatePanelFromObject();
+    this.logAction("undo");
     return true;
+  }
+
+  logAction(action) {
+    const label = this.getActionLabel(action);
+    if (!label) return;
+    this.actionHistory.record(label);
+    this.panel.renderHistory(this.actionHistory.entries());
+  }
+
+  getActionLabel(action) {
+    if (!action) return null;
+    switch (action) {
+      case "translate":
+        return "Translate";
+      case "rotate":
+        return "Rotate";
+      case "scale":
+        return "Scale";
+      case "reset":
+        return "Reset";
+      case "undo":
+        return "Undo";
+      default:
+        return "Transform";
+    }
   }
 
   dispose() {

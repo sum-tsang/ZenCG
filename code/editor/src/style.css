@@ -197,3 +197,36 @@ body {
 .reset-btn:active {
   background: #d0d0d0;
 }
+
+.history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fafafa;
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 0.75rem;
+}
+
+.history-item {
+  padding: 4px 4px;
+  border-bottom: 1px solid #ececec;
+  color: #333;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-empty {
+  color: #888;
+  font-style: italic;
+}

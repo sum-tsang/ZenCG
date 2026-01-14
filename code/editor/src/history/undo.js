@@ -71,11 +71,11 @@ export class UndoHistory {
   }
 
   record(snapshot) {
-    if (!snapshot) return;
+    if (!snapshot) return false;
 
     const current = this.stack[this.index];
     if (snapshotEqual(current, snapshot)) {
-      return;
+      return false;
     }
 
     if (this.index < this.stack.length - 1) {
@@ -90,6 +90,7 @@ export class UndoHistory {
     }
 
     this.index = this.stack.length - 1;
+    return true;
   }
 
   undo() {
