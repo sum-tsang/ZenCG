@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { createCamera, frameObject } from "./camera/camera.js";
+import { createCamera, frameObjectBounds } from "./camera/camera.js";
 import { attachCameraControls } from "./camera/cameraSettings.js";
 import { setupObjImport } from "./io/import.js";
 import { setupObjExport } from "./io/export.js";
@@ -40,6 +40,10 @@ const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
 keyLight.position.set(5, 6, 4);
 scene.add(keyLight);
 
+const importRoot = new THREE.Group();
+importRoot.name = "ImportedObjects";
+scene.add(importRoot);
+
 // Status
 function setStatus(message) {
   if (status) {
@@ -64,6 +68,23 @@ function isTransformPanelTarget(target) {
 
 // Current object
 let currentObject = null;
+const importedObjects = [];
+let nextOffsetX = 0;
+const importGap = 4;
+
+function placeImportedObject(object) {
+  const box = new THREE.Box3().setFromObject(object);
+  if (box.isEmpty()) return;
+
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+
+  object.position.sub(center);
+  object.position.x += nextOffsetX;
+
+  const width = Math.max(size.x, 1);
+  nextOffsetX += width + importGap;
+}
 
 // IndexedDB
 function openDb() {
@@ -150,10 +171,13 @@ function loadLastObj() {
 // Import
 const importer = setupObjImport({
   fileInput,
-  scene,
-  frameObject: (object) => frameObject(object, camera, target),
+  container: importRoot,
+  frameObject: () => frameObjectBounds(importRoot, camera, target),
   setStatus,
   onObjectLoaded: (object) => {
+    if (!object) return;
+    placeImportedObject(object);
+    importedObjects.push(object);
     currentObject = object;
     exportButton.disabled = false;
     // Sync selection

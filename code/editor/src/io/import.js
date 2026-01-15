@@ -2,7 +2,7 @@ import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
 export function setupObjImport({
   fileInput,
-  scene,
+  container,
   frameObject,
   setStatus,
   onObjectLoaded,
@@ -13,7 +13,6 @@ export function setupObjImport({
   }
 
   const loader = new OBJLoader();
-  let currentObject = null;
 
   function loadObjFromText(text, filename) {
     let object;
@@ -26,54 +25,71 @@ export function setupObjImport({
       return;
     }
 
-    if (currentObject) {
-      scene.remove(currentObject);
-    }
-
-    currentObject = object;
-    scene.add(object);
-    frameObject(object);
+    object.name = filename;
+    container.add(object);
     onObjectLoaded?.(object);
+    frameObject?.(object);
     onTextLoaded?.(text, filename);
     setStatus?.(`Loaded ${filename}`);
   }
 
-  function handleFile(file) {
-    if (!file) {
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const text = reader.result;
+        if (typeof text === "string") {
+          resolve(text);
+        } else {
+          reject(new Error("Unable to read OBJ file."));
+        }
+      };
+
+      reader.onerror = () => {
+        reject(new Error("Error reading OBJ file."));
+      };
+
+      reader.readAsText(file);
+    });
+  }
+
+  async function handleFiles(files) {
+    if (!files || files.length === 0) {
       return;
     }
 
-    if (!file.name.toLowerCase().endsWith(".obj")) {
+    const objFiles = Array.from(files).filter((file) =>
+      file.name.toLowerCase().endsWith(".obj")
+    );
+
+    if (objFiles.length === 0) {
       setStatus?.("Please select a .obj file.");
       fileInput.value = "";
       return;
     }
 
-    setStatus?.("Loading OBJ...");
-    const reader = new FileReader();
+    setStatus?.(
+      objFiles.length === 1 ? "Loading OBJ..." : `Loading ${objFiles.length} OBJ files...`
+    );
 
-    reader.onload = () => {
-      const text = reader.result;
-      if (typeof text === "string") {
+    for (const file of objFiles) {
+      try {
+        const text = await readFileAsText(file);
         loadObjFromText(text, file.name);
-      } else {
-        setStatus?.("Unable to read OBJ file.");
+      } catch (error) {
+        console.error(error);
+        setStatus?.(`Error reading ${file.name}.`);
       }
-      fileInput.value = "";
-    };
+    }
 
-    reader.onerror = () => {
-      setStatus?.("Error reading OBJ file.");
-      fileInput.value = "";
-    };
-
-    reader.readAsText(file);
+    fileInput.value = "";
   }
 
   fileInput.addEventListener("change", (event) => {
     const input = event.target;
     if (input instanceof HTMLInputElement) {
-      handleFile(input.files?.[0] ?? null);
+      handleFiles(input.files);
     }
   });
 

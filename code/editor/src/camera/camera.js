@@ -22,3 +22,20 @@ export function frameObject(object, camera, target) {
   camera.lookAt(target);
   camera.updateProjectionMatrix();
 }
+
+export function frameObjectBounds(object, camera, target) {
+  const box = new THREE.Box3().setFromObject(object);
+  if (box.isEmpty()) return;
+
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+
+  const maxDim = Math.max(size.x, size.y, size.z, 1);
+  const distance = maxDim * 1.8;
+  camera.position.set(center.x + distance, center.y + distance * 0.9, center.z + distance);
+  camera.near = maxDim / 100;
+  camera.far = maxDim * 100;
+  target.copy(center);
+  camera.lookAt(target);
+  camera.updateProjectionMatrix();
+}
