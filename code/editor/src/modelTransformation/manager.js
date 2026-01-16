@@ -63,20 +63,10 @@ export class TransformationManager {
     this.canvas.addEventListener("mousedown", this.onMouseDown);
     document.addEventListener("mousemove", this.onMouseMove);
     document.addEventListener("mouseup", this.onMouseUp);
-    // Prevent the browser context menu on the canvas so right-click can be
-    // used for transforms without opening the menu.
-    this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   }
 
   onMouseDown(event) {
     if (!this.camera) return;
-
-    // Only handle gizmo interactions and selection on right-click (button === 2).
-    // Left-click is intended for camera controls (handled by pointer events).
-    if (event.button !== 2) return;
-
-    // Prevent default context menu for this event as well.
-    event.preventDefault();
 
     // Check if clicking on gizmo
     this.wasDraggingGizmo = false;
@@ -86,7 +76,7 @@ export class TransformationManager {
       return;
     }
 
-    // Otherwise, try to select a model (right-click selection)
+    // Otherwise, try to select a model
     const rect = this.canvas.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;

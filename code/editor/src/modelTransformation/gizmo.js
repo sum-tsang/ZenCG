@@ -23,10 +23,15 @@ export class TransformationGizmo {
     this.initialPosition = new THREE.Vector3();
     this.initialRotation = new THREE.Euler();
     this.initialScale = new THREE.Vector3();
+    this.initialQuaternion = new THREE.Quaternion();
+    this.initialDragPoint = new THREE.Vector3();
+    this.initialBoundingBoxSize = new THREE.Vector3();
     this.handleType = null; // 'scale' | 'rotate' | null
     this.highlightedObject = null;
     this.startMouseScreenY = 0;
     this.lastMouseScreenY = 0;
+    this.initialMouseScreen = new THREE.Vector2();
+    this.initialHandleWorldPos = new THREE.Vector3();
 
     // Interactive axes
     this.axes = {
@@ -182,9 +187,20 @@ export class TransformationGizmo {
 
   updateGizmoPosition() {
     if (!this.object) return;
-    this.gizmoGroup.position.copy(this.object.position);
-    this.gizmoGroup.rotation.copy(this.object.rotation);
-    this.gizmoGroup.scale.copy(this.object.scale);
+
+    // Use world transforms so the gizmo matches the object's world-space
+    // position/rotation/scale even when the object is nested under a parent
+    const worldPos = new THREE.Vector3();
+    const worldQuat = new THREE.Quaternion();
+    const worldScale = new THREE.Vector3();
+
+    this.object.getWorldPosition(worldPos);
+    this.object.getWorldQuaternion(worldQuat);
+    this.object.getWorldScale(worldScale);
+
+    this.gizmoGroup.position.copy(worldPos);
+    this.gizmoGroup.quaternion.copy(worldQuat);
+    this.gizmoGroup.scale.copy(worldScale);
   }
 
   updateGizmoAppearance() {
@@ -302,19 +318,72 @@ export class TransformationGizmo {
       this.initialPosition.copy(this.object.position);
       this.initialRotation.copy(this.object.rotation);
       this.initialScale.copy(this.object.scale);
+      this.object.getWorldQuaternion(this.initialQuaternion);
       this.startMouseScreenY = event.clientY;
       this.lastMouseScreenY = event.clientY;
+      
+      // Store initial mouse position for screen-space scaling
+      const rect = container.getBoundingClientRect();
+      this.initialMouseScreen.x = event.clientX - rect.left;
+      this.initialMouseScreen.y = event.clientY - rect.top;
+      
+      // Store initial handle position in world space (for scaling reference)
+      if (this.handleType === "scale" || this.mode === "scale") {
+        // Get the handle position (at the end of the axis)
+        const axisVec = this.getAxisVector();
+        const axisLength = 6;
+        const arrowLength = 1.2;
+        const handleLocalPos = axisVec.clone().multiplyScalar(axisLength + arrowLength * 0.6);
+        this.initialHandleWorldPos.copy(handleLocalPos);
+        this.initialHandleWorldPos.applyQuaternion(this.initialQuaternion);
+        this.initialHandleWorldPos.add(this.object.position);
+      }
+
+      // Store initial bounding box size for scaling calculations
+      // Calculate with normalized scale to get base size (prevents feedback loop)
+      const originalScale = this.object.scale.clone();
+      this.object.scale.set(1, 1, 1);
+      const box = new THREE.Box3().setFromObject(this.object);
+      this.initialBoundingBoxSize.copy(box.getSize(new THREE.Vector3()));
+      this.object.scale.copy(originalScale); // Restore original scale
+      
+      // CRITICAL: Ensure initial scale is properly stored and won't change
+      // This prevents any feedback loops
+      this.initialScale.x = originalScale.x;
+      this.initialScale.y = originalScale.y;
+      this.initialScale.z = originalScale.z;
+      
+      // CRITICAL: Store initial scale as a deep copy to prevent any modifications
+      // This ensures the initial scale never changes during dragging
+      this.initialScale.x = originalScale.x;
+      this.initialScale.y = originalScale.y;
+      this.initialScale.z = originalScale.z;
 
       // Setup drag plane for rotation/scale
-      const normal = this.getAxisVector();
-
-      this.dragPlane.setFromNormalAndCoplanarPoint(
-        normal,
-        this.object.position
-      );
+      // For scaling, use a plane perpendicular to camera view so mouse movement
+      // projects naturally onto the axis direction
+      if (this.handleType === "scale" || this.mode === "scale") {
+        // Use camera-facing plane - this allows the handle to follow mouse direction
+        const cameraDirection = new THREE.Vector3();
+        camera.getWorldDirection(cameraDirection);
+        const normal = cameraDirection.negate();
+        
+        this.dragPlane.setFromNormalAndCoplanarPoint(
+          normal,
+          this.object.position
+        );
+      } else {
+        // For rotation, use plane perpendicular to axis
+        const normal = this.getAxisVector();
+        this.dragPlane.setFromNormalAndCoplanarPoint(
+          normal,
+          this.object.position
+        );
+      }
 
       // Get initial drag point
       this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
+      this.initialDragPoint.copy(this.lastDragPoint);
 
       return true;
     }
@@ -345,17 +414,33 @@ export class TransformationGizmo {
     } else {
       // Prefer explicit handle type (e.g., clicking a scale handle)
       if (this.handleType === "scale" || this.mode === "scale") {
-        // Use screen-space vertical drag for scaling to avoid plane projection issues
-        this.handleScale(event);
+        // Use screen-space distance for stable scaling
+        this.handleScale(delta, event, container, camera);
       } else if (this.handleType === "rotate" || this.mode === "rotate") {
         this.handleRotate(delta);
       }
     }
 
     this.lastDragPoint.copy(this.dragPoint);
-    this.updateGizmoPosition();
+    
+    // Update gizmo position, but for scaling, only update position/rotation, not scale
+    // to prevent feedback loops
+    if (this.handleType === "scale" || this.mode === "scale") {
+      // Only update position and rotation during scaling, not scale
+      const worldPos = new THREE.Vector3();
+      const worldQuat = new THREE.Quaternion();
+      this.object.getWorldPosition(worldPos);
+      this.object.getWorldQuaternion(worldQuat);
+      this.gizmoGroup.position.copy(worldPos);
+      this.gizmoGroup.quaternion.copy(worldQuat);
+      // Don't update gizmo scale during scaling drag
+    } else {
+      this.updateGizmoPosition();
+    }
 
-    if (this.listeners.onTransform) {
+    // Only trigger transform callback if not scaling (to prevent feedback loops)
+    // For scaling, we'll update the panel only when drag ends
+    if (this.listeners.onTransform && !(this.handleType === "scale" || this.mode === "scale")) {
       this.listeners.onTransform({
         position: this.object.position.clone(),
         rotation: this.object.rotation.clone(),
@@ -385,24 +470,64 @@ export class TransformationGizmo {
     this.object.quaternion.copy(currentQuat);
   }
 
-  handleScale(event) {
-    // Use vertical mouse movement to compute a multiplicative scale factor.
-    const sensitivity = 0.005; // adjust to taste
-    const dy = this.lastMouseScreenY - event.clientY;
-    const factor = 1 + dy * sensitivity;
+  handleScale(delta, event, container, camera) {
+    // Use 3D drag point to follow mouse direction along the axis
+    const minScale = 1e-4;
 
-    const scale = this.initialScale.clone();
-    if (this.axis === "x") {
-      scale.x = Math.max(0.01, this.initialScale.x * factor);
-    } else if (this.axis === "y") {
-      scale.y = Math.max(0.01, this.initialScale.y * factor);
-    } else if (this.axis === "z") {
-      scale.z = Math.max(0.01, this.initialScale.z * factor);
+    if (!(delta instanceof THREE.Vector3)) {
+      // Fallback if delta is not a Vector3
+      return;
     }
 
-    this.object.scale.copy(scale);
-    // update last mouse Y so movement is incremental
-    this.lastMouseScreenY = event.clientY;
+    // Calculate total distance from initial drag point to current drag point
+    const totalDelta = new THREE.Vector3().subVectors(this.dragPoint, this.initialDragPoint);
+    
+    // Get axis vector in world space using stored initial quaternion (stable reference)
+    const localAxisVec = this.getAxisVector().clone().normalize();
+    const axisVec = localAxisVec.applyQuaternion(this.initialQuaternion).normalize();
+    
+    // Project total delta onto the axis to get the drag distance along the axis
+    // This makes the handle follow the mouse direction
+    const projectedDistance = totalDelta.dot(axisVec);
+
+    // Use initial bounding box size as reference (calculated with scale=1,1,1)
+    const initialSize = this.initialBoundingBoxSize;
+    
+    // Get the size along the specific axis we're scaling
+    let ref;
+    if (this.axis === "x") {
+      ref = initialSize.x;
+    } else if (this.axis === "y") {
+      ref = initialSize.y;
+    } else if (this.axis === "z") {
+      ref = initialSize.z;
+    } else {
+      // Uniform scaling - use average size
+      ref = (initialSize.x + initialSize.y + initialSize.z) / 3;
+    }
+    
+    // Ensure we have a valid reference size
+    if (ref <= 0) ref = 1;
+
+    // Calculate scale factor based on distance moved along axis
+    // The scale factor is proportional to how far the handle moves along the axis
+    // Use a sensitivity factor to control responsiveness
+    const sensitivity = 1.0; // Adjust this to control scaling speed
+    const scaleFactor = 1 + (projectedDistance / ref) * sensitivity;
+
+    // Apply scale based on initial scale, not current scale (prevents feedback loop)
+    // CRITICAL: Always calculate from initialScale, never read from object.scale
+    if (this.axis === "x") {
+      this.object.scale.x = Math.max(minScale, this.initialScale.x * scaleFactor);
+    } else if (this.axis === "y") {
+      this.object.scale.y = Math.max(minScale, this.initialScale.y * scaleFactor);
+    } else if (this.axis === "z") {
+      this.object.scale.z = Math.max(minScale, this.initialScale.z * scaleFactor);
+    } else {
+      // Uniform scaling
+      const uniformScale = Math.max(minScale, this.initialScale.x * scaleFactor);
+      this.object.scale.set(uniformScale, uniformScale, uniformScale);
+    }
   }
 
   getAxisVector() {
@@ -420,6 +545,17 @@ export class TransformationGizmo {
 
   onMouseUp() {
     if (this.isDragging) {
+      // If we were scaling, trigger transform callback now to update panel
+      if (this.handleType === "scale" || this.mode === "scale") {
+        if (this.listeners.onTransform && this.object) {
+          this.listeners.onTransform({
+            position: this.object.position.clone(),
+            rotation: this.object.rotation.clone(),
+            scale: this.object.scale.clone(),
+          });
+        }
+      }
+      
       this.isDragging = false;
       this.axis = null;
       this.handleType = null;
