@@ -275,8 +275,12 @@ export class TransformationGizmo {
 
     this.raycaster.setFromCamera(this.mouse, camera);
 
-    // Check if we're in translate mode - if so, allow dragging the model itself
+    // Check if we're in translate mode - only allow dragging when clicking the model.
     if (this.mode === "translate") {
+      const dragHits = this.raycaster.intersectObject(this.object, true);
+      if (dragHits.length === 0) {
+        return false;
+      }
       // Create a plane at the object's position facing the camera
       const cameraDirection = new THREE.Vector3();
       camera.getWorldDirection(cameraDirection);

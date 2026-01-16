@@ -57,6 +57,11 @@ body {
   background: #f6f6f6;
 }
 
+#panel .muted {
+  color: #666;
+  font-size: 0.8rem;
+}
+
 #status {
   margin: 4px 0 0;
   font-size: 0.85rem;
@@ -67,6 +72,58 @@ body {
   margin: 12px 0;
   border: none;
   border-top: 1px solid #ddd;
+}
+
+.panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panel-heading {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.object-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.object-list-container {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px;
+  background: #fff;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.object-button {
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  background: #fafafa;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.object-button:hover {
+  background: #f0f0f0;
+}
+
+.object-button.active {
+  border-color: #f1b93b;
+  background: #fff3d1;
 }
 
 /* Transformation Panel Styles */

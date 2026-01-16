@@ -10,9 +10,13 @@ const canvas = document.getElementById("viewport-canvas");
 const fileInput = document.getElementById("obj-input");
 const exportButton = document.getElementById("obj-export");
 const status = document.getElementById("status");
+const objectList = document.getElementById("object-list");
+const objectListEmpty = document.getElementById("object-list-empty");
 const storageKey = "lastObj";
 const dbName = "zencg";
 const storeName = "models";
+const storedImports = [];
+let isRestoring = false;
 
 if (!(canvas instanceof HTMLCanvasElement)) {
   throw new Error("Viewport canvas not found.");
@@ -43,6 +47,41 @@ scene.add(keyLight);
 const importRoot = new THREE.Group();
 importRoot.name = "ImportedObjects";
 scene.add(importRoot);
+
+const selectionHelper = new THREE.BoxHelper(new THREE.Object3D(), 0xffc857);
+selectionHelper.visible = false;
+selectionHelper.renderOrder = 1;
+const selectionMaterials = Array.isArray(selectionHelper.material)
+  ? selectionHelper.material
+  : [selectionHelper.material];
+selectionMaterials.forEach((material) => {
+  if (!material) return;
+  material.depthTest = false;
+  material.transparent = true;
+  material.opacity = 0.8;
+});
+scene.add(selectionHelper);
+
+function findImportedRoot(object) {
+  let current = object;
+  while (current && current !== importRoot) {
+    if (current.parent === importRoot) {
+      return current;
+    }
+    current = current.parent;
+  }
+  return null;
+}
+
+function updateSelectionOutline(object) {
+  if (!object) {
+    selectionHelper.visible = false;
+    return;
+  }
+
+  selectionHelper.setFromObject(object);
+  selectionHelper.visible = true;
+}
 
 // Status
 function setStatus(message) {
@@ -86,6 +125,43 @@ function placeImportedObject(object) {
   nextOffsetX += width + importGap;
 }
 
+function renderObjectList() {
+  if (!(objectList instanceof HTMLUListElement)) {
+    return;
+  }
+
+  objectList.innerHTML = "";
+  const hasObjects = importedObjects.length > 0;
+
+  if (objectListEmpty instanceof HTMLElement) {
+    objectListEmpty.hidden = hasObjects;
+  }
+
+  if (!hasObjects) {
+    return;
+  }
+
+  importedObjects.forEach((object, index) => {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "object-button";
+    const label =
+      typeof object?.name === "string" && object.name
+        ? object.name
+        : `Object ${index + 1}`;
+    button.textContent = label;
+    if (object === currentObject) {
+      button.classList.add("active");
+    }
+    button.addEventListener("click", () => {
+      transformationManager.setObject(object);
+    });
+    item.append(button);
+    objectList.append(item);
+  });
+}
+
 // IndexedDB
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -107,12 +183,16 @@ function openDb() {
 }
 
 // Save last OBJ
-function saveLastObj(text, name) {
+function saveStoredImports() {
+  const entries = storedImports.map((entry) => ({
+    name: entry.name,
+    text: entry.text,
+  }));
   openDb()
     .then((db) => {
       const tx = db.transaction(storeName, "readwrite");
       const store = tx.objectStore(storeName);
-      store.put({ id: storageKey, name, text, updatedAt: Date.now() });
+      store.put({ id: storageKey, entries, updatedAt: Date.now() });
       tx.oncomplete = () => db.close();
       tx.onerror = () => {
         console.warn("Unable to save OBJ to IndexedDB.", tx.error);
@@ -125,7 +205,7 @@ function saveLastObj(text, name) {
 }
 
 // Load last OBJ
-function loadLastObj() {
+function loadStoredImports() {
   return openDb()
     .then(
       (db) =>
@@ -136,17 +216,27 @@ function loadLastObj() {
 
           request.onsuccess = () => {
             const result = request.result;
-            if (result && typeof result.text === "string") {
-              resolve({
-                name:
-                  typeof result.name === "string" && result.name
-                    ? result.name
-                    : "restored.obj",
-                text: result.text,
-              });
-            } else {
-              resolve(null);
+            if (result?.entries && Array.isArray(result.entries)) {
+              resolve(
+                result.entries.filter(
+                  (entry) => entry && typeof entry.text === "string"
+                )
+              );
+              return;
             }
+            if (result && typeof result.text === "string") {
+              resolve([
+                {
+                  name:
+                    typeof result.name === "string" && result.name
+                      ? result.name
+                      : "restored.obj",
+                  text: result.text,
+                },
+              ]);
+              return;
+            }
+            resolve(null);
           };
 
           request.onerror = () => {
@@ -182,9 +272,13 @@ const importer = setupObjImport({
     exportButton.disabled = false;
     // Sync selection
     transformationManager.setObject(object);
+    renderObjectList();
   },
   onTextLoaded: (text, filename) => {
-    saveLastObj(text, filename);
+    storedImports.push({ name: filename, text });
+    if (!isRestoring) {
+      saveStoredImports();
+    }
   },
 });
 
@@ -199,11 +293,16 @@ setupObjExport({
 attachCameraControls({ canvas, camera, target, renderer });
 
 // Transform tools
-const transformationManager = new TransformationManager(
-  scene,
-  canvas,
-  "transformation-panel-container"
-);
+const transformationManager = new TransformationManager(scene, canvas, "transformation-panel-container", {
+  selectableRoot: importRoot,
+  resolveSelection: (object) => findImportedRoot(object),
+  onSelectionChange: (object) => {
+    currentObject = object ?? null;
+    exportButton.disabled = !object;
+    updateSelectionOutline(currentObject);
+    renderObjectList();
+  },
+});
 transformationManager.setCamera(camera);
 
 // Undo
@@ -240,6 +339,9 @@ function resize() {
 // Render loop
 function render() {
   camera.lookAt(target);
+  if (currentObject && selectionHelper.visible) {
+    selectionHelper.setFromObject(currentObject);
+  }
   renderer.render(scene, camera);
   requestAnimationFrame(render);
 }
@@ -251,9 +353,23 @@ resize();
 render();
 
 // Restore last OBJ
-loadLastObj().then((restored) => {
+loadStoredImports().then((restored) => {
   if (restored && importer?.loadFromText) {
-    setStatus("Restoring previous OBJ...");
-    importer.loadFromText(restored.text, restored.name);
+    const entries = Array.isArray(restored) ? restored : [];
+    if (entries.length === 0) {
+      return;
+    }
+    setStatus(
+      entries.length === 1
+        ? "Restoring previous OBJ..."
+        : `Restoring ${entries.length} OBJ files...`
+    );
+    isRestoring = true;
+    storedImports.length = 0;
+    entries.forEach((entry) => {
+      importer.loadFromText(entry.text, entry.name);
+    });
+    isRestoring = false;
+    saveStoredImports();
   }
 });
