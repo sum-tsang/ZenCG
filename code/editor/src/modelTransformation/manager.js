@@ -142,12 +142,25 @@ export class TransformationManager {
       }
     }
 
-    if (
-      selectedObject &&
-      this.gizmo?.mode === "translate" &&
-      this.gizmo.onMouseDown(event, this.camera, this.canvas)
-    ) {
-      this.wasDraggingGizmo = true;
+    // If the user clicked inside the selection bounding box (yellow outline)
+    // but didn't hit actual geometry, treat that as a selection hit so the
+    // user can start free translation by dragging the outline.
+    if (!selectedObject && this.selectedObject) {
+      // Ensure matrices are up-to-date for accurate bounds
+      this.selectedObject.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(this.selectedObject);
+      const hitPoint = this.raycaster.ray.intersectBox(box, new THREE.Vector3());
+      if (hitPoint) {
+        selectedObject = this.selectedObject;
+      }
+    }
+
+    if (selectedObject && this.gizmo?.mode === "translate") {
+      // If click was on the bounding box rather than geometry, force free translate
+      const force = selectedObject === this.selectedObject && intersects.length === 0;
+      if (this.gizmo.onMouseDown(event, this.camera, this.canvas, force)) {
+        this.wasDraggingGizmo = true;
+      }
     }
   }
 

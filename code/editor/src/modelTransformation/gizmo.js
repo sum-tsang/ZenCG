@@ -195,6 +195,10 @@ export class TransformationGizmo {
     const worldQuat = new THREE.Quaternion();
     const worldScale = new THREE.Vector3();
 
+    // Ensure matrices are up-to-date so world queries return current values
+    if (this.object.parent) this.object.parent.updateMatrixWorld(true);
+    this.object.updateMatrixWorld(true);
+
     this.object.getWorldPosition(worldPos);
     this.object.getWorldQuaternion(worldQuat);
     this.object.getWorldScale(worldScale);
@@ -267,7 +271,7 @@ export class TransformationGizmo {
     }
   }
 
-  onMouseDown(event, camera, container) {
+  onMouseDown(event, camera, container, forceFreeTranslate = false) {
     // Do not allow left-button to start model/gizmo drags.
     // Left-click will still be used for selection by the manager.
     if (event.button === 0) return false;
@@ -280,33 +284,10 @@ export class TransformationGizmo {
 
     this.raycaster.setFromCamera(this.mouse, camera);
 
-    // Check if we're in translate mode - if so, allow dragging the model itself
-    if (this.mode === "translate") {
-      // Create a plane at the object's position facing the camera
-      const cameraDirection = new THREE.Vector3();
-      camera.getWorldDirection(cameraDirection);
-      const normal = cameraDirection.negate();
-
-      this.dragPlane.setFromNormalAndCoplanarPoint(
-        normal,
-        this.object.position
-      );
-
-      this.isDragging = true;
-      this.axis = "free"; // Free movement in translate mode
-
-      // Store initial values
-      this.initialPosition.copy(this.object.position);
-      this.initialRotation.copy(this.object.rotation);
-      this.initialScale.copy(this.object.scale);
-      this.startMouseScreenY = event.clientY;
-      this.lastMouseScreenY = event.clientY;
-
-      // Get initial drag point
-      this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
-
-      return true;
-    }
+    // NOTE: Do not start free translate here unconditionally. Free translate
+    // should only begin when the user actually clicks the object itself
+    // (handled later via objectIntersects). This prevents accidental
+    // translations when right-clicking empty space.
 
     // For rotate and scale modes, use axis-based interaction
     const interactiveObjects = this.gizmoGroup.children.filter((child) => child.userData.isGizmoAxis);
@@ -373,18 +354,17 @@ export class TransformationGizmo {
         const cameraDirection = new THREE.Vector3();
         camera.getWorldDirection(cameraDirection);
         const normal = cameraDirection.negate();
-        
-        this.dragPlane.setFromNormalAndCoplanarPoint(
-          normal,
-          this.object.position
-        );
+
+        const worldPos = new THREE.Vector3();
+        this.object.getWorldPosition(worldPos);
+
+        this.dragPlane.setFromNormalAndCoplanarPoint(normal, worldPos);
       } else {
         // For rotation, use plane perpendicular to axis
         const normal = this.getAxisVector();
-        this.dragPlane.setFromNormalAndCoplanarPoint(
-          normal,
-          this.object.position
-        );
+        const worldPos = new THREE.Vector3();
+        this.object.getWorldPosition(worldPos);
+        this.dragPlane.setFromNormalAndCoplanarPoint(normal, worldPos);
       }
 
       // Get initial drag point
@@ -395,16 +375,16 @@ export class TransformationGizmo {
     }
 
       // If in translate mode, only start free translation when clicking on the object itself
-      if (this.mode === "translate" && objectIntersects.length > 0) {
+      // or when explicitly forced (e.g., clicking the selection outline box)
+      if (this.mode === "translate" && (objectIntersects.length > 0 || forceFreeTranslate)) {
         // Create a plane at the object's position facing the camera
         const cameraDirection = new THREE.Vector3();
         camera.getWorldDirection(cameraDirection);
         const normal = cameraDirection.negate();
 
-        this.dragPlane.setFromNormalAndCoplanarPoint(
-          normal,
-          this.object.position
-        );
+        const worldPos = new THREE.Vector3();
+        this.object.getWorldPosition(worldPos);
+        this.dragPlane.setFromNormalAndCoplanarPoint(normal, worldPos);
 
         this.isDragging = true;
         this.dragButton = event.button;
@@ -452,8 +432,18 @@ export class TransformationGizmo {
 
     if (this.mode === "translate") {
       if (this.axis === "free") {
-        // Free movement - move the object by the delta
-        this.object.position.add(delta);
+        // Free movement - apply world-space delta to the object's local position
+        // Ensure matrices are current so world/local conversions are accurate
+        if (this.object.parent) this.object.parent.updateMatrixWorld(true);
+        this.object.updateMatrixWorld(true);
+
+        const worldPos = new THREE.Vector3();
+        this.object.getWorldPosition(worldPos);
+        worldPos.add(delta);
+        if (this.object.parent) {
+          this.object.parent.worldToLocal(worldPos);
+        }
+        this.object.position.copy(worldPos);
       } else {
         // Constrained movement along axis
         this.handleTranslate(delta);
@@ -497,11 +487,25 @@ export class TransformationGizmo {
   }
 
   handleTranslate(delta) {
+    // Apply axis-constrained translation in world-space then convert to local
     const axisVector = this.getAxisVector();
-    
-    // Project delta onto the axis direction
-    const projectedDelta = axisVector.clone().multiplyScalar(delta.dot(axisVector));
-    this.object.position.add(projectedDelta);
+    if (axisVector.lengthSq() === 0) return;
+
+    // axisVector is in local space of the gizmo; convert to world-space
+    const worldAxis = axisVector.clone().applyQuaternion(this.gizmoGroup.quaternion).normalize();
+
+    // Project delta onto world axis
+    const projectedDelta = worldAxis.clone().multiplyScalar(delta.dot(worldAxis));
+
+    // Compute new world position and convert to parent-local
+    if (this.object.parent) this.object.parent.updateMatrixWorld(true);
+    this.object.updateMatrixWorld(true);
+
+    const worldPos = new THREE.Vector3();
+    this.object.getWorldPosition(worldPos);
+    worldPos.add(projectedDelta);
+    if (this.object.parent) this.object.parent.worldToLocal(worldPos);
+    this.object.position.copy(worldPos);
   }
 
   handleRotate(delta) {
