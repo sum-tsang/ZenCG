@@ -13,7 +13,7 @@ import { ActionHistory } from "../history/actionHistory.js";
  * Handles real-time synchronization between gizmo interactions and numerical inputs
  */
 export class TransformationManager {
-  constructor(scene, canvasElement, panelContainerId) {
+  constructor(scene, canvasElement, panelContainerId, options = {}) {
     this.scene = scene;
     this.canvas = canvasElement;
     this.currentObject = null;
@@ -22,6 +22,11 @@ export class TransformationManager {
     this.undoHistory = new UndoHistory();
     this.actionHistory = new ActionHistory();
     this.wasDraggingGizmo = false;
+    this.selectableRoot = options.selectableRoot ?? null;
+    this.resolveSelection =
+      typeof options.resolveSelection === "function" ? options.resolveSelection : null;
+    this.onSelectionChange =
+      typeof options.onSelectionChange === "function" ? options.onSelectionChange : null;
 
     // Initialize gizmo and panel
     this.gizmo = new TransformationGizmo(scene);
@@ -104,22 +109,44 @@ export class TransformationManager {
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    // Get all meshes in the scene except the gizmo
     const selectableObjects = [];
-    this.scene.traverse((child) => {
-      if (
-        child instanceof THREE.Mesh &&
-        child.name !== "TransformationGizmo" &&
-        !child.parent?.name?.includes("TransformationGizmo")
-      ) {
-        selectableObjects.push(child);
-      }
-    });
+    if (this.selectableRoot) {
+      this.selectableRoot.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          selectableObjects.push(child);
+        }
+      });
+    } else {
+      // Get all meshes in the scene except the gizmo
+      this.scene.traverse((child) => {
+        if (
+          child instanceof THREE.Mesh &&
+          child.name !== "TransformationGizmo" &&
+          !child.parent?.name?.includes("TransformationGizmo")
+        ) {
+          selectableObjects.push(child);
+        }
+      });
+    }
 
     const intersects = this.raycaster.intersectObjects(selectableObjects);
 
+    let selectedObject = null;
     if (intersects.length > 0) {
-      this.selectObject(intersects[0].object);
+      const hit = intersects[0].object;
+      const resolved = this.resolveSelection ? this.resolveSelection(hit) : hit;
+      if (resolved) {
+        this.selectObject(resolved);
+        selectedObject = resolved;
+      }
+    }
+
+    if (
+      selectedObject &&
+      this.gizmo?.mode === "translate" &&
+      this.gizmo.onMouseDown(event, this.camera, this.canvas)
+    ) {
+      this.wasDraggingGizmo = true;
     }
   }
 
@@ -188,6 +215,9 @@ export class TransformationManager {
         this.undoHistory.clear();
         this.actionHistory.clear();
         this.panel.renderHistory([]);
+      }
+      if (this.onSelectionChange) {
+        this.onSelectionChange(object);
       }
     }
   }

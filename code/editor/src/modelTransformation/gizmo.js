@@ -280,6 +280,34 @@ export class TransformationGizmo {
 
     this.raycaster.setFromCamera(this.mouse, camera);
 
+    // Check if we're in translate mode - if so, allow dragging the model itself
+    if (this.mode === "translate") {
+      // Create a plane at the object's position facing the camera
+      const cameraDirection = new THREE.Vector3();
+      camera.getWorldDirection(cameraDirection);
+      const normal = cameraDirection.negate();
+
+      this.dragPlane.setFromNormalAndCoplanarPoint(
+        normal,
+        this.object.position
+      );
+
+      this.isDragging = true;
+      this.axis = "free"; // Free movement in translate mode
+
+      // Store initial values
+      this.initialPosition.copy(this.object.position);
+      this.initialRotation.copy(this.object.rotation);
+      this.initialScale.copy(this.object.scale);
+      this.startMouseScreenY = event.clientY;
+      this.lastMouseScreenY = event.clientY;
+
+      // Get initial drag point
+      this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
+
+      return true;
+    }
+
     // For rotate and scale modes, use axis-based interaction
     const interactiveObjects = this.gizmoGroup.children.filter((child) => child.userData.isGizmoAxis);
     const intersects = this.raycaster.intersectObjects(interactiveObjects);
