@@ -32,6 +32,7 @@ export class TransformationGizmo {
     this.lastMouseScreenY = 0;
     this.initialMouseScreen = new THREE.Vector2();
     this.initialHandleWorldPos = new THREE.Vector3();
+    this.dragButton = null;
 
     // Interactive axes
     this.axes = {
@@ -267,6 +268,10 @@ export class TransformationGizmo {
   }
 
   onMouseDown(event, camera, container) {
+    // Do not allow left-button to start model/gizmo drags.
+    // Left-click will still be used for selection by the manager.
+    if (event.button === 0) return false;
+
     if (!this.object) return;
 
     const rect = container.getBoundingClientRect();
@@ -275,42 +280,15 @@ export class TransformationGizmo {
 
     this.raycaster.setFromCamera(this.mouse, camera);
 
-    // Check if we're in translate mode - if so, allow dragging the model itself
-    if (this.mode === "translate") {
-      // Create a plane at the object's position facing the camera
-      const cameraDirection = new THREE.Vector3();
-      camera.getWorldDirection(cameraDirection);
-      const normal = cameraDirection.negate();
-
-      this.dragPlane.setFromNormalAndCoplanarPoint(
-        normal,
-        this.object.position
-      );
-
-      this.isDragging = true;
-      this.axis = "free"; // Free movement in translate mode
-
-      // Store initial values
-      this.initialPosition.copy(this.object.position);
-      this.initialRotation.copy(this.object.rotation);
-      this.initialScale.copy(this.object.scale);
-      this.startMouseScreenY = event.clientY;
-      this.lastMouseScreenY = event.clientY;
-
-      // Get initial drag point
-      this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
-
-      return true;
-    }
-
     // For rotate and scale modes, use axis-based interaction
-    const interactiveObjects = this.gizmoGroup.children.filter(
-      (child) => child.userData.isGizmoAxis
-    );
+    const interactiveObjects = this.gizmoGroup.children.filter((child) => child.userData.isGizmoAxis);
     const intersects = this.raycaster.intersectObjects(interactiveObjects);
 
+    // Also test whether the click hit the current object (for translate mode)
+    const objectIntersects = this.object ? this.raycaster.intersectObject(this.object, true) : [];
     if (intersects.length > 0) {
       this.isDragging = true;
+      this.dragButton = event.button;
       this.axis = intersects[0].object.userData.axis;
       this.handleType = intersects[0].object.userData.handleType || null;
 
@@ -388,11 +366,52 @@ export class TransformationGizmo {
       return true;
     }
 
+      // If in translate mode, only start free translation when clicking on the object itself
+      if (this.mode === "translate" && objectIntersects.length > 0) {
+        // Create a plane at the object's position facing the camera
+        const cameraDirection = new THREE.Vector3();
+        camera.getWorldDirection(cameraDirection);
+        const normal = cameraDirection.negate();
+
+        this.dragPlane.setFromNormalAndCoplanarPoint(
+          normal,
+          this.object.position
+        );
+
+        this.isDragging = true;
+        this.dragButton = event.button;
+        this.axis = "free"; // Free movement in translate mode
+
+        // Store initial values
+        this.initialPosition.copy(this.object.position);
+        this.initialRotation.copy(this.object.rotation);
+        this.initialScale.copy(this.object.scale);
+        this.startMouseScreenY = event.clientY;
+        this.lastMouseScreenY = event.clientY;
+
+        // Get initial drag point
+        this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
+
+        return true;
+      }
+
     return false;
   }
 
   onMouseMove(event, camera, container) {
-    if (!this.isDragging || !this.object || !this.axis) return;
+    // CRITICAL: If left mouse button is pressed, completely ignore this event
+    // Left button is reserved for camera controls only
+    if (event.buttons !== undefined && (event.buttons & 1)) {
+      // Stop dragging if left button is detected
+      if (this.isDragging) {
+        this.onMouseUp();
+      }
+      return;
+    }
+    
+    // Only process mouse move if a drag was started and it was started
+    // by the right mouse button (button === 2).
+    if (!this.isDragging || this.dragButton !== 2 || !this.object || !this.axis) return;
 
     const rect = container.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -415,7 +434,7 @@ export class TransformationGizmo {
       // Prefer explicit handle type (e.g., clicking a scale handle)
       if (this.handleType === "scale" || this.mode === "scale") {
         // Use screen-space distance for stable scaling
-        this.handleScale(delta, event, container, camera);
+        this.handleScale(event);
       } else if (this.handleType === "rotate" || this.mode === "rotate") {
         this.handleRotate(delta);
       }
@@ -470,64 +489,31 @@ export class TransformationGizmo {
     this.object.quaternion.copy(currentQuat);
   }
 
-  handleScale(delta, event, container, camera) {
-    // Use 3D drag point to follow mouse direction along the axis
-    const minScale = 1e-4;
+  handleScale(event) {
+    // Use vertical mouse movement to compute a multiplicative scale factor.
+    // Use vertical mouse movement relative to the initial click to compute
+    // a stable multiplicative scale factor. Use an exponential mapping so
+    // scaling is smooth and symmetric and never flips sign.
+    const sensitivity = 0.005; // adjust to taste
+    const dy = this.startMouseScreenY - event.clientY;
+    const factor = Math.exp(dy * sensitivity);
 
-    if (!(delta instanceof THREE.Vector3)) {
-      // Fallback if delta is not a Vector3
-      return;
-    }
-
-    // Calculate total distance from initial drag point to current drag point
-    const totalDelta = new THREE.Vector3().subVectors(this.dragPoint, this.initialDragPoint);
-    
-    // Get axis vector in world space using stored initial quaternion (stable reference)
-    const localAxisVec = this.getAxisVector().clone().normalize();
-    const axisVec = localAxisVec.applyQuaternion(this.initialQuaternion).normalize();
-    
-    // Project total delta onto the axis to get the drag distance along the axis
-    // This makes the handle follow the mouse direction
-    const projectedDistance = totalDelta.dot(axisVec);
-
-    // Use initial bounding box size as reference (calculated with scale=1,1,1)
-    const initialSize = this.initialBoundingBoxSize;
-    
-    // Get the size along the specific axis we're scaling
-    let ref;
+    const scale = this.initialScale.clone();
     if (this.axis === "x") {
-      ref = initialSize.x;
+      scale.x = Math.max(0.01, this.initialScale.x * factor);
     } else if (this.axis === "y") {
-      ref = initialSize.y;
+      scale.y = Math.max(0.01, this.initialScale.y * factor);
     } else if (this.axis === "z") {
-      ref = initialSize.z;
+      scale.z = Math.max(0.01, this.initialScale.z * factor);
     } else {
-      // Uniform scaling - use average size
-      ref = (initialSize.x + initialSize.y + initialSize.z) / 3;
+      // Uniform scale if axis isn't specified
+      scale.multiplyScalar(factor);
+      scale.x = Math.max(0.01, scale.x);
+      scale.y = Math.max(0.01, scale.y);
+      scale.z = Math.max(0.01, scale.z);
     }
-    
-    // Ensure we have a valid reference size
-    if (ref <= 0) ref = 1;
 
-    // Calculate scale factor based on distance moved along axis
-    // The scale factor is proportional to how far the handle moves along the axis
-    // Use a sensitivity factor to control responsiveness
-    const sensitivity = 1.0; // Adjust this to control scaling speed
-    const scaleFactor = 1 + (projectedDistance / ref) * sensitivity;
-
-    // Apply scale based on initial scale, not current scale (prevents feedback loop)
-    // CRITICAL: Always calculate from initialScale, never read from object.scale
-    if (this.axis === "x") {
-      this.object.scale.x = Math.max(minScale, this.initialScale.x * scaleFactor);
-    } else if (this.axis === "y") {
-      this.object.scale.y = Math.max(minScale, this.initialScale.y * scaleFactor);
-    } else if (this.axis === "z") {
-      this.object.scale.z = Math.max(minScale, this.initialScale.z * scaleFactor);
-    } else {
-      // Uniform scaling
-      const uniformScale = Math.max(minScale, this.initialScale.x * scaleFactor);
-      this.object.scale.set(uniformScale, uniformScale, uniformScale);
-    }
+    this.object.scale.copy(scale);
   }
 
   getAxisVector() {
@@ -559,6 +545,7 @@ export class TransformationGizmo {
       this.isDragging = false;
       this.axis = null;
       this.handleType = null;
+      this.dragButton = null;
     }
   }
 
