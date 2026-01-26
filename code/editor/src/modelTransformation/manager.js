@@ -87,12 +87,13 @@ export class TransformationManager {
   onMouseDown(event) {
     if (!this.camera) return;
 
-    // Only allow gizmo interactions and object selection with the right mouse button
-    // (event.button === 2). Left click is reserved for camera controls.
-    if (event.button !== 2) return;
+    // Allow left-click (0) and right-click (2) for selection/gizmo.
+    if (event.button !== 0 && event.button !== 2) return;
 
-    // Prevent browser default (context menu) on right-click action
-    event.preventDefault();
+    if (event.button === 2) {
+      // Prevent browser default (context menu) on right-click action
+      event.preventDefault();
+    }
 
     // Check if clicking on gizmo
     this.wasDraggingGizmo = false;

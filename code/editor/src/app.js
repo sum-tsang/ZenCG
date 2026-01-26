@@ -9,6 +9,7 @@ import { TransformationManager } from "./modelTransformation/manager.js";
 const canvas = document.getElementById("viewport-canvas");
 const fileInput = document.getElementById("obj-input");
 const exportButton = document.getElementById("obj-export");
+const deleteButton = document.getElementById("obj-delete");
 const status = document.getElementById("status");
 const objectList = document.getElementById("object-list");
 const objectListEmpty = document.getElementById("object-list-empty");
@@ -24,6 +25,10 @@ if (!(canvas instanceof HTMLCanvasElement)) {
 
 if (!(exportButton instanceof HTMLButtonElement)) {
   throw new Error("OBJ export button not found.");
+}
+
+if (!(deleteButton instanceof HTMLButtonElement)) {
+  throw new Error("OBJ delete button not found.");
 }
 
 // Renderer
@@ -143,6 +148,9 @@ function renderObjectList() {
 
   importedObjects.forEach((object, index) => {
     const item = document.createElement("li");
+    item.className = "object-item";
+    const row = document.createElement("div");
+    row.className = "object-row";
     const button = document.createElement("button");
     button.type = "button";
     button.className = "object-button";
@@ -157,9 +165,61 @@ function renderObjectList() {
     button.addEventListener("click", () => {
       transformationManager.setObject(object);
     });
-    item.append(button);
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "object-delete";
+    removeButton.textContent = "Delete";
+    removeButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteImportedObject(object);
+    });
+    row.append(button, removeButton);
+    item.append(row);
     objectList.append(item);
   });
+}
+
+function disposeObject(object) {
+  object.traverse((child) => {
+    if (child.geometry) child.geometry.dispose();
+    const material = child.material;
+    if (Array.isArray(material)) {
+      material.forEach((mat) => mat.dispose());
+    } else if (material) {
+      material.dispose();
+    }
+  });
+}
+
+function deleteImportedObject(object) {
+  const root = object ? findImportedRoot(object) ?? object : null;
+  if (!root) return;
+
+  const index = importedObjects.indexOf(root);
+  if (index === -1) return;
+
+  const wasCurrent = currentObject === root;
+  importRoot.remove(root);
+  disposeObject(root);
+  importedObjects.splice(index, 1);
+  if (index < storedImports.length) {
+    storedImports.splice(index, 1);
+  }
+  if (importedObjects.length === 0) {
+    nextOffsetX = 0;
+  }
+  saveStoredImports();
+
+  if (wasCurrent) {
+    const next = importedObjects[index] ?? importedObjects[index - 1] ?? null;
+    transformationManager.setObject(next);
+  } else {
+    renderObjectList();
+  }
+
+  const name =
+    typeof root?.name === "string" && root.name ? root.name : "object";
+  setStatus(`Deleted ${name}.`);
 }
 
 // IndexedDB
@@ -270,6 +330,7 @@ const importer = setupObjImport({
     importedObjects.push(object);
     currentObject = object;
     exportButton.disabled = false;
+    deleteButton.disabled = false;
     // Sync selection
     transformationManager.setObject(object);
     renderObjectList();
@@ -289,6 +350,10 @@ setupObjExport({
   setStatus,
 });
 
+deleteButton.addEventListener("click", () => {
+  deleteImportedObject(currentObject);
+});
+
 // Camera controls
 attachCameraControls({ canvas, camera, target, renderer });
 
@@ -299,6 +364,7 @@ const transformationManager = new TransformationManager(scene, canvas, "transfor
   onSelectionChange: (object) => {
     currentObject = object ?? null;
     exportButton.disabled = !object;
+    deleteButton.disabled = !object;
     updateSelectionOutline(currentObject);
     renderObjectList();
   },
@@ -324,6 +390,15 @@ document.addEventListener("keydown", (event) => {
 
   event.preventDefault();
   transformationManager.undo();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (isEditableTarget(event.target)) return;
+
+  if (event.key === "Delete" || event.key === "Backspace") {
+    event.preventDefault();
+    deleteImportedObject(currentObject);
+  }
 });
 
 // Resize

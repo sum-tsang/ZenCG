@@ -57,6 +57,17 @@ body {
   background: #f6f6f6;
 }
 
+#obj-delete {
+  border-color: #e3b0b0;
+  background: #ffecec;
+  color: #7a1f1f;
+}
+
+#obj-delete:disabled {
+  background: #f6f6f6;
+  color: #999;
+}
+
 #panel .muted {
   color: #666;
   font-size: 0.8rem;
@@ -97,6 +108,16 @@ body {
   gap: 6px;
 }
 
+.object-item {
+  margin: 0;
+}
+
+.object-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .object-list-container {
   border: 1px solid #ddd;
   border-radius: 6px;
@@ -115,6 +136,7 @@ body {
   border-radius: 4px;
   font-size: 0.8rem;
   cursor: pointer;
+  flex: 1;
 }
 
 .object-button:hover {
@@ -124,6 +146,20 @@ body {
 .object-button.active {
   border-color: #f1b93b;
   background: #fff3d1;
+}
+
+.object-delete {
+  padding: 6px 8px;
+  border: 1px solid #e3b0b0;
+  background: #ffecec;
+  color: #7a1f1f;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.object-delete:hover {
+  background: #ffdede;
 }
 
 /* Transformation Panel Styles */
