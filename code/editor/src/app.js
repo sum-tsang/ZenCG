@@ -32,10 +32,12 @@ const state = {
   storedImports: [],
   nextOffsetX: 0,
   isRestoring: false,
+  pendingTransforms: [],
 };
 
 let transformationManager = null;
 let importer = null;
+let saveTimeout = null;
 
 // Scene
 const { renderer, scene, camera, target, importRoot, selectionHelper } =
@@ -268,6 +270,47 @@ function deleteImportedObject(object) {
   setStatus(`Deleted ${name}.`);
 }
 
+// Serialize Transform
+function serializeTransform(object) {
+  return {
+    position: object.position.toArray(),
+    quaternion: object.quaternion.toArray(),
+    scale: object.scale.toArray(),
+  };
+}
+
+// Apply Transform
+function applyTransform(object, transform) {
+  if (!transform) return;
+  if (Array.isArray(transform.position) && transform.position.length === 3) {
+    object.position.fromArray(transform.position);
+  }
+  if (Array.isArray(transform.quaternion) && transform.quaternion.length === 4) {
+    object.quaternion.fromArray(transform.quaternion);
+  }
+  if (Array.isArray(transform.scale) && transform.scale.length === 3) {
+    object.scale.fromArray(transform.scale);
+  }
+}
+
+// Update Stored Transform
+function updateStoredTransform(object) {
+  const index = state.importedObjects.indexOf(object);
+  if (index === -1) return;
+  const entry = state.storedImports[index];
+  if (!entry) return;
+  entry.transform = serializeTransform(object);
+}
+
+// Schedule Save
+function scheduleSave() {
+  if (state.isRestoring) return;
+  if (saveTimeout) window.clearTimeout(saveTimeout);
+  saveTimeout = window.setTimeout(() => {
+    saveStoredImports();
+  }, 200);
+}
+
 // Persistence
 // Open IndexedDB
 function openDb() {
@@ -294,6 +337,7 @@ function saveStoredImports() {
   const entries = state.storedImports.map((entry) => ({
     name: entry.name,
     text: entry.text,
+    transform: entry.transform ?? null,
   }));
   openDb()
     .then((db) => {
@@ -405,6 +449,11 @@ function setupTransformTools() {
     }
   );
   transformationManager.setCamera(camera);
+  transformationManager.onTransform(() => {
+    if (!state.currentObject) return;
+    updateStoredTransform(state.currentObject);
+    scheduleSave();
+  });
 }
 
 // Setup Import/Export
@@ -417,6 +466,10 @@ function setupImportExport() {
     onObjectLoaded: (object) => {
       if (!object) return;
       placeImportedObject(object);
+      if (state.isRestoring && state.pendingTransforms.length > 0) {
+        const transform = state.pendingTransforms.shift();
+        applyTransform(object, transform);
+      }
       state.importedObjects.push(object);
       state.currentObject = object;
       dom.exportButton.disabled = false;
@@ -426,9 +479,10 @@ function setupImportExport() {
     },
     onTextLoaded: (text, filename) => {
       state.storedImports.push({ name: filename, text });
-      if (!state.isRestoring) {
-        saveStoredImports();
+      if (state.currentObject) {
+        updateStoredTransform(state.currentObject);
       }
+      scheduleSave();
     },
   });
 
@@ -521,10 +575,12 @@ function restoreStoredImports() {
       );
       state.isRestoring = true;
       state.storedImports.length = 0;
+      state.pendingTransforms = entries.map((entry) => entry?.transform ?? null);
       entries.forEach((entry) => {
         importer.loadFromText(entry.text, entry.name);
       });
       state.isRestoring = false;
+      state.pendingTransforms = [];
       saveStoredImports();
     }
   });
