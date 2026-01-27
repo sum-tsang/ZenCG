@@ -13,13 +13,11 @@ export function attachCameraControls({ canvas, camera, target, renderer }) {
 
   // On Pointer Down
   function onPointerDown(event) {
-    // Only allow camera movements via left-click
+    // Left-click: orbit (shift = pan). Middle-click: pan.
     if (event.button === 0) {
-      if (event.shiftKey) {
-        mode = "pan";
-      } else {
-        mode = "orbit";
-      }
+      mode = event.shiftKey ? "pan" : "orbit";
+    } else if (event.button === 1) {
+      mode = "pan";
     } else {
       mode = null;
     }
