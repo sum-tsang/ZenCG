@@ -1,11 +1,13 @@
 import * as THREE from "three";
 
+// Create Pan
 export function createPan({ camera, target, renderer }) {
   const panOffset = new THREE.Vector3();
   const panRight = new THREE.Vector3();
   const panUp = new THREE.Vector3();
   const panTemp = new THREE.Vector3();
 
+  // Pan
   return function pan(deltaX, deltaY) {
     const element = renderer.domElement;
     panTemp.copy(camera.position).sub(target);

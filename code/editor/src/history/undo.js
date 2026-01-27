@@ -2,12 +2,12 @@
 const DEFAULT_LIMIT = 16;
 const DEFAULT_EPSILON = 1e-6;
 
-// Float compare
+// Float Compare
 function nearlyEqual(a, b, epsilon = DEFAULT_EPSILON) {
   return Math.abs(a - b) <= epsilon;
 }
 
-// Vector compare
+// Vector Compare
 function vectorEqual(a, b, epsilon = DEFAULT_EPSILON) {
   return (
     nearlyEqual(a.x, b.x, epsilon) &&
@@ -16,7 +16,7 @@ function vectorEqual(a, b, epsilon = DEFAULT_EPSILON) {
   );
 }
 
-// Quaternion compare
+// Quaternion Compare
 function quaternionEqual(a, b, epsilon = DEFAULT_EPSILON) {
   return (
     nearlyEqual(a.x, b.x, epsilon) &&
@@ -26,7 +26,7 @@ function quaternionEqual(a, b, epsilon = DEFAULT_EPSILON) {
   );
 }
 
-// Snapshot compare
+// Snapshot Compare
 function snapshotEqual(a, b, epsilon = DEFAULT_EPSILON) {
   if (!a || !b) return false;
   if (a.object !== b.object) return false;
@@ -37,7 +37,7 @@ function snapshotEqual(a, b, epsilon = DEFAULT_EPSILON) {
   );
 }
 
-// Snapshot capture
+// Create Transform Snapshot
 export function createTransformSnapshot(object) {
   if (!object) return null;
   return {
@@ -48,7 +48,7 @@ export function createTransformSnapshot(object) {
   };
 }
 
-// Snapshot apply
+// Apply Transform Snapshot
 export function applyTransformSnapshot(snapshot) {
   if (!snapshot?.object) return false;
   snapshot.object.position.copy(snapshot.position);
@@ -57,19 +57,22 @@ export function applyTransformSnapshot(snapshot) {
   return true;
 }
 
-// History stack
+// Undo History
 export class UndoHistory {
+  // Constructor
   constructor({ limit = DEFAULT_LIMIT } = {}) {
     this.limit = limit;
     this.stack = [];
     this.index = -1;
   }
 
+  // Clear
   clear() {
     this.stack = [];
     this.index = -1;
   }
 
+  // Record
   record(snapshot) {
     if (!snapshot) return false;
 
@@ -93,6 +96,7 @@ export class UndoHistory {
     return true;
   }
 
+  // Undo
   undo() {
     if (this.index <= 0) return null;
     this.index -= 1;

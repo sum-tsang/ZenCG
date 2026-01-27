@@ -2,6 +2,7 @@ import { createPan } from "./pan.js";
 import { createOrbit } from "./orbit.js";
 import { createZoom } from "./zoom.js";
 
+// Attach Camera Controls
 export function attachCameraControls({ canvas, camera, target, renderer }) {
   const pan = createPan({ camera, target, renderer });
   const orbit = createOrbit({ camera, target });
@@ -10,6 +11,7 @@ export function attachCameraControls({ canvas, camera, target, renderer }) {
   let lastPointerX = 0;
   let lastPointerY = 0;
 
+  // On Pointer Down
   function onPointerDown(event) {
     // Only allow camera movements via left-click
     if (event.button === 0) {
@@ -29,6 +31,7 @@ export function attachCameraControls({ canvas, camera, target, renderer }) {
     }
   }
 
+  // On Pointer Move
   function onPointerMove(event) {
     if (!mode) {
       return;
@@ -46,6 +49,7 @@ export function attachCameraControls({ canvas, camera, target, renderer }) {
     }
   }
 
+  // On Pointer Up
   function onPointerUp(event) {
     if (mode) {
       mode = null;
@@ -53,14 +57,17 @@ export function attachCameraControls({ canvas, camera, target, renderer }) {
     }
   }
 
+  // On Pointer Leave
   function onPointerLeave() {
     mode = null;
   }
 
+  // On Context Menu
   function onContextMenu(event) {
     event.preventDefault();
   }
 
+  // On Wheel
   function onWheel(event) {
     event.preventDefault();
     zoom(event.deltaY);

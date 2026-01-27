@@ -1,5 +1,6 @@
 import * as THREE from "three";
 
+// Create Zoom
 export function createZoom({ camera, target }) {
   const orbitOffset = new THREE.Vector3();
   const orbitSpherical = new THREE.Spherical();
@@ -7,6 +8,7 @@ export function createZoom({ camera, target }) {
   const minDistance = 0.2;
   const maxDistance = 200;
 
+  // Zoom
   return function zoom(deltaY) {
     orbitOffset.copy(camera.position).sub(target);
     orbitSpherical.setFromVector3(orbitOffset);

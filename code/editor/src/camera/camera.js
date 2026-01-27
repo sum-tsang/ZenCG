@@ -1,11 +1,13 @@
 import * as THREE from "three";
 
+// Create Camera
 export function createCamera() {
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
   const target = new THREE.Vector3(0, 0, 0);
   return { camera, target };
 }
 
+// Frame Object (local)
 export function frameObject(object, camera, target) {
   const box = new THREE.Box3().setFromObject(object);
   const size = box.getSize(new THREE.Vector3());
@@ -23,6 +25,7 @@ export function frameObject(object, camera, target) {
   camera.updateProjectionMatrix();
 }
 
+// Frame Object Bounds (world)
 export function frameObjectBounds(object, camera, target) {
   const box = new THREE.Box3().setFromObject(object);
   if (box.isEmpty()) return;

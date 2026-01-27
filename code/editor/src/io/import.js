@@ -1,5 +1,6 @@
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 
+// Setup OBJ Import
 export function setupObjImport({
   fileInput,
   container,
@@ -14,6 +15,7 @@ export function setupObjImport({
 
   const loader = new OBJLoader();
 
+  // Load OBJ From Text
   function loadObjFromText(text, filename) {
     let object;
 
@@ -33,6 +35,7 @@ export function setupObjImport({
     setStatus?.(`Loaded ${filename}`);
   }
 
+  // Read File As Text
   function readFileAsText(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -54,6 +57,7 @@ export function setupObjImport({
     });
   }
 
+  // Handle Files
   async function handleFiles(files) {
     if (!files || files.length === 0) {
       return;
