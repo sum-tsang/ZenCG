@@ -22,6 +22,7 @@ export class TransformationManager {
     this.undoHistory = new UndoHistory();
     this.actionHistory = new ActionHistory();
     this.wasDraggingGizmo = false;
+    this.transformListeners = new Set();
     this.selectableRoot = options.selectableRoot ?? null;
     this.resolveSelection =
       typeof options.resolveSelection === "function" ? options.resolveSelection : null;
@@ -39,6 +40,7 @@ export class TransformationManager {
     // Wire up connections
     this.gizmo.onTransform((transform) => {
       this.panel.updateFromGizmo(transform);
+      this.emitTransform({ ...transform, source: "gizmo" });
     });
 
     this.panel.onTransform((transform) => {
@@ -54,6 +56,7 @@ export class TransformationManager {
         const action = transform?.commit ? transform.action || transform.mode : null;
         this.recordSnapshot(action);
       }
+      this.emitTransform(transform);
     });
 
     // Mouse event handlers
@@ -251,6 +254,14 @@ export class TransformationManager {
     this.gizmo.updateGizmoPosition();
     this.panel.updatePanelFromObject();
     this.logAction("undo");
+    if (this.selectedObject) {
+      this.emitTransform({
+        position: this.selectedObject.position.clone(),
+        rotation: this.selectedObject.quaternion.clone(),
+        scale: this.selectedObject.scale.clone(),
+        source: "undo",
+      });
+    }
     return true;
   }
 
@@ -285,5 +296,17 @@ export class TransformationManager {
     document.removeEventListener("pointerup", this.onMouseUp);
     this.gizmo.dispose();
     this.panel.dispose();
+  }
+
+  onTransform(callback) {
+    if (typeof callback !== "function") return () => {};
+    this.transformListeners.add(callback);
+    return () => this.transformListeners.delete(callback);
+  }
+
+  emitTransform(transform) {
+    this.transformListeners.forEach((callback) => {
+      callback(transform);
+    });
   }
 }
