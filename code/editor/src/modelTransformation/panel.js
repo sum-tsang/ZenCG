@@ -173,9 +173,10 @@ export class TransformationPanel {
   setMode(mode) {
     const buttons = this.container.querySelectorAll(".mode-btn");
     buttons.forEach((btn) => btn.classList.remove("active"));
-    this.container
-      .querySelector(`[data-mode="${mode}"]`)
-      .classList.add("active");
+    const activeButton = this.container.querySelector(`[data-mode="${mode}"]`);
+    if (activeButton) {
+      activeButton.classList.add("active");
+    }
 
     this.currentMode = mode;
 

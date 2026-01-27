@@ -368,8 +368,8 @@ function loadStoredImports() {
 // Features
 // Init
 function init() {
-  setupCameraControls();
   setupTransformTools();
+  setupCameraControls();
   setupImportExport();
   setupShortcuts();
   setupResizeAndRender();
@@ -498,6 +498,9 @@ function render() {
   camera.lookAt(target);
   if (state.currentObject && selectionHelper.visible) {
     selectionHelper.setFromObject(state.currentObject);
+  }
+  if (state.currentObject) {
+    transformationManager?.gizmo?.updateGizmoPosition();
   }
   renderer.render(scene, camera);
   requestAnimationFrame(render);

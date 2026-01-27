@@ -65,23 +65,11 @@ export class TransformationManager {
   }
 
   setupEventListeners() {
-    this.canvas.addEventListener("mousedown", this.onMouseDown);
-    document.addEventListener("mousemove", this.onMouseMove);
-    document.addEventListener("mouseup", this.onMouseUp);
-    // Prevent the browser context menu when right-clicking the canvas so
-    // right-click drags can be used for transformations without interruption.
+    this.canvas.addEventListener("pointerdown", this.onMouseDown);
+    document.addEventListener("pointermove", this.onMouseMove);
+    document.addEventListener("pointerup", this.onMouseUp);
+    // Prevent the browser context menu so drag interactions aren't interrupted.
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-    
-    // Also listen to pointer events to detect when left-click camera controls are active
-    // This helps prevent conflicts between camera and model transformation
-    this.canvas.addEventListener("pointerdown", (e) => {
-      if (e.button === 0) {
-        // Left-click detected - ensure we're not dragging
-        if (this.gizmo.isDragging) {
-          this.gizmo.onMouseUp();
-        }
-      }
-    });
   }
 
   onMouseDown(event) {
@@ -100,10 +88,12 @@ export class TransformationManager {
     const gizmoHandled = this.gizmo.onMouseDown(event, this.camera, this.canvas);
     if (gizmoHandled) {
       this.wasDraggingGizmo = true;
+      event.preventDefault();
+      event.stopImmediatePropagation();
       return;
     }
 
-    // Otherwise, try to select a model (right-click selection)
+    // Otherwise, try to select a model
     const rect = this.canvas.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -162,36 +152,28 @@ export class TransformationManager {
         this.wasDraggingGizmo = true;
       }
     }
+
+    if (!selectedObject && !this.wasDraggingGizmo) {
+      if (this.selectedObject) {
+        this.selectObject(null);
+      }
+    }
+
+    if (selectedObject || this.wasDraggingGizmo) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
   }
 
   onMouseMove(event) {
     if (!this.camera) return;
 
-    // CRITICAL: If left mouse button is down, completely ignore all model/gizmo interactions
-    // Left button is reserved exclusively for camera controls.
-    if (event.buttons !== undefined && (event.buttons & 1)) {
-      // If we were dragging, stop immediately
-      if (this.gizmo.isDragging) {
-        this.gizmo.onMouseUp();
-      }
-      // Completely ignore all model interactions during left-click camera movement
-      return;
-    }
-
-    // If the gizmo is currently dragging, only forward movement if the drag
-    // was started by the right mouse button AND the right button is still pressed
-    // (guard against left-button drags and ensure right-click-only editing).
+    // If the gizmo is currently dragging, forward movement to the gizmo handler.
     if (this.gizmo.isDragging) {
-      // Only allow if drag was started with right button AND right button is still pressed
-      if (this.gizmo.dragButton === 2 && event.buttons !== undefined && (event.buttons & 2)) {
-        this.gizmo.onMouseMove(event, this.camera, this.canvas);
-      } else {
-        // If wrong button or button released, stop dragging
-        this.gizmo.onMouseUp();
-      }
+      this.gizmo.onMouseMove(event, this.camera, this.canvas);
     } else {
-      // Otherwise update hover highlights/cursor (only when not left-clicking)
-      if (this.gizmo.highlightUnderMouse && !(event.buttons !== undefined && (event.buttons & 1))) {
+      // Otherwise update hover highlights/cursor
+      if (this.gizmo.highlightUnderMouse) {
         this.gizmo.highlightUnderMouse(event, this.camera, this.canvas);
       }
     }
@@ -238,6 +220,7 @@ export class TransformationManager {
 
   setCamera(camera) {
     this.camera = camera;
+    this.gizmo.setCamera(camera, this.canvas);
   }
 
   setMode(mode) {
@@ -297,9 +280,9 @@ export class TransformationManager {
   }
 
   dispose() {
-    this.canvas.removeEventListener("mousedown", this.onMouseDown);
-    document.removeEventListener("mousemove", this.onMouseMove);
-    document.removeEventListener("mouseup", this.onMouseUp);
+    this.canvas.removeEventListener("pointerdown", this.onMouseDown);
+    document.removeEventListener("pointermove", this.onMouseMove);
+    document.removeEventListener("pointerup", this.onMouseUp);
     this.gizmo.dispose();
     this.panel.dispose();
   }
