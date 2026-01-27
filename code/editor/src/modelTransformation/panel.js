@@ -26,6 +26,7 @@ export class TransformationPanel {
 
     this.listeners = {
       onTransform: null,
+      onSplitRequest: null,
     };
 
     this.initializeUI();
@@ -63,6 +64,18 @@ export class TransformationPanel {
 
     modeGroup.appendChild(modeButtons);
     panel.appendChild(modeGroup);
+
+    // Create Component button (placed near top for visibility)
+    const splitRow = document.createElement("div");
+    splitRow.className = "split-row";
+    const splitBtn = document.createElement("button");
+    splitBtn.textContent = "Create Component (click mesh)";
+    splitBtn.className = "split-btn";
+    splitRow.appendChild(splitBtn);
+    panel.appendChild(splitRow);
+    splitBtn.addEventListener("click", () => {
+      if (this.listeners.onSplitRequest) this.listeners.onSplitRequest();
+    });
 
     // Position section
     this.positionSection = this.createTransformSection("Position", "position", "Position (units)");
@@ -266,6 +279,10 @@ export class TransformationPanel {
       this.gizmo.setObject(this.transformObject);
       this.gizmo.show();
     }
+  }
+
+  onSplit(callback) {
+    this.listeners.onSplitRequest = callback;
   }
 
   updatePanelFromObject() {

@@ -291,6 +291,25 @@ body {
   background: #d0d0d0;
 }
 
+.split-row {
+  display: flex;
+  gap: 6px;
+}
+
+.split-btn {
+  padding: 6px;
+  border: 1px solid #c9b37a;
+  background: #fff7e6;
+  color: #6a4a00;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 0.85rem;
+}
+
+.split-btn:hover {
+  background: #fff0cc;
+}
+
 .history-section {
   display: flex;
   flex-direction: column;
