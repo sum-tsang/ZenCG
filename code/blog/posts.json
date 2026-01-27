@@ -4,11 +4,15 @@
     "title": "About Blog & Initialising The Project",
     "date": "2026-01-11"
   },
-  
   {
     "slug": "2026-01-17",
     "title": "Transformations, Undo/Redo, Action History",
     "date": "2026-01-17"
+  },
+  {
+    "slug": "2026-01-27",
+    "title": "Delete, Gizmo/Transformation Fixes, Basic UI/UX (Tailwind CSS)",
+    "date": "2026-01-27"
   }
 ]
 
