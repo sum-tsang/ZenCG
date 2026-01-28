@@ -5,10 +5,11 @@ This blog is a static site that renders Markdown in the browser.
 ## File map
 
 - `index.html`: Blog shell and layout.
-- `blog.js`: Client-side router, Markdown renderer, and post loader.
-- `blog.css`: Blog styling.
-- `posts.json`: Post index (list view).
+- `scripts/blog.js`: Client-side router, Markdown renderer, and post loader.
+- `styles/blog.css`: Blog styling.
+- `data/posts.json`: Post index (list view).
 - `posts/`: Markdown content for each post.
+- `assets/`: Images for posts.
 
 ## Add a new post
 
@@ -31,7 +32,7 @@ Summary paragraph: what changed and why it matters.
 - Design decision or tradeoff.
 ```
 
-3) Add the post to `code/blog/posts.json`:
+3) Add the post to `code/blog/data/posts.json`:
 
 ```json
 {
@@ -42,6 +43,20 @@ Summary paragraph: what changed and why it matters.
 ```
 
 The `slug` must match the filename without `.md`, and the `date` should be ISO format.
+
+## Images
+
+Place image files in `code/blog/assets/` (create the folder if needed). Image paths are resolved relative to `code/blog/`:
+
+```md
+![Home page layout](./assets/home-page.png)
+```
+
+Optional title text is supported:
+
+```md
+![Gizmo update](./assets/gizmo-update.png "Transform gizmo improvements")
+```
 
 ## Local preview
 

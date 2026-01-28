@@ -11,7 +11,7 @@ if (!postList || !postTitle || !postMeta || !postContent || !backLink) {
 }
 
 let posts = [];
-const baseUrl = new URL(".", import.meta.url);
+const baseUrl = new URL("../", import.meta.url);
 
 function escapeHtml(text) {
   return text
@@ -24,6 +24,10 @@ function escapeHtml(text) {
 
 function formatInline(text) {
   return text
+    .replace(/!\[([^\]]*?)\]\(([^)\s]+?)(?:\s+&quot;(.+?)&quot;)?\)/g, (match, alt, src, title) => {
+      const titleAttr = title ? ` title="${title}"` : "";
+      return `<img src="${src}" alt="${alt}" loading="lazy"${titleAttr} />`;
+    })
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`(.+?)`/g, "<code>$1</code>")
@@ -184,7 +188,7 @@ function onRouteChange() {
 
 async function init() {
   try {
-    const response = await fetch(new URL("posts.json", baseUrl));
+    const response = await fetch(new URL("data/posts.json", baseUrl));
     posts = await response.json();
     posts.sort((a, b) => (a.date < b.date ? 1 : -1));
     renderPostList();
