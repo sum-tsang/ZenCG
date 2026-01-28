@@ -16,6 +16,7 @@ const config = {
 // DOM & State
 const dom = {
   canvas: document.getElementById("viewport-canvas"),
+  envGizmoCanvas: document.getElementById("env-gizmo-canvas"),
   fileInput: document.getElementById("obj-input"),
   exportButton: document.getElementById("obj-export"),
   deleteButton: document.getElementById("obj-delete"),
@@ -38,6 +39,7 @@ const state = {
 let transformationManager = null;
 let importer = null;
 let saveTimeout = null;
+let envGizmo = null;
 
 // Scene
 const { renderer, scene, camera, target, importRoot, selectionHelper } =
@@ -412,12 +414,18 @@ function loadStoredImports() {
 // Features
 // Init
 function init() {
+  setupEnvironmentGizmo();
   setupTransformTools();
   setupCameraControls();
   setupImportExport();
   setupShortcuts();
   setupResizeAndRender();
   restoreStoredImports();
+}
+
+// Setup Environment Gizmo
+function setupEnvironmentGizmo() {
+  envGizmo = createEnvironmentGizmo(dom.envGizmoCanvas, camera);
 }
 
 // Setup Camera Controls
@@ -545,6 +553,7 @@ function resize() {
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height, false);
+  envGizmo?.resize();
 }
 
 // Render
@@ -557,6 +566,7 @@ function render() {
     transformationManager?.gizmo?.updateGizmoPosition();
   }
   renderer.render(scene, camera);
+  envGizmo?.render();
   requestAnimationFrame(render);
 }
 
@@ -584,4 +594,74 @@ function restoreStoredImports() {
       saveStoredImports();
     }
   });
+}
+
+// Create Environment Gizmo
+function createEnvironmentGizmo(canvas, mainCamera) {
+  if (!(canvas instanceof HTMLCanvasElement)) {
+    return null;
+  }
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 0);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
+  camera.position.set(0, 0, 3);
+
+  const axesGroup = new THREE.Group();
+  const origin = new THREE.Vector3(0, 0, 0);
+  const arrowLength = 0.9;
+  const headLength = 0.25;
+  const headWidth = 0.16;
+  axesGroup.add(
+    new THREE.ArrowHelper(
+      new THREE.Vector3(1, 0, 0),
+      origin,
+      arrowLength,
+      0xff3b30,
+      headLength,
+      headWidth
+    )
+  );
+  axesGroup.add(
+    new THREE.ArrowHelper(
+      new THREE.Vector3(0, 1, 0),
+      origin,
+      arrowLength,
+      0x34c759,
+      headLength,
+      headWidth
+    )
+  );
+  axesGroup.add(
+    new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, 1),
+      origin,
+      arrowLength,
+      0x0a84ff,
+      headLength,
+      headWidth
+    )
+  );
+  scene.add(axesGroup);
+
+  const resize = () => {
+    const width = Math.max(1, canvas.clientWidth);
+    const height = Math.max(1, canvas.clientHeight);
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  };
+
+  const render = () => {
+    if (!mainCamera) return;
+    axesGroup.quaternion.copy(mainCamera.quaternion).invert();
+    renderer.render(scene, camera);
+  };
+
+  resize();
+
+  return { resize, render };
 }

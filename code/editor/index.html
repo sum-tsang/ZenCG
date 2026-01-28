@@ -8,26 +8,54 @@
   </head>
   <body>
     <div id="app">
-      <main id="viewport">
-        <canvas id="viewport-canvas" aria-label="3D viewport"></canvas>
-      </main>
-      <aside id="panel">
-        <h1>ZenCG Editor</h1>
-        <label for="obj-input">Import OBJ</label>
-        <input id="obj-input" type="file" accept=".obj" multiple />
-        <button id="obj-export" disabled>Export OBJ</button>
-        <button id="obj-delete" disabled>Delete Selected</button>
-        <p id="status">Waiting for OBJ file...</p>
-        <hr class="panel-divider" />
-        <section class="panel-section">
-          <h2 class="panel-heading">Objects</h2>
-          <p id="object-list-empty" class="muted">No models imported.</p>
-          <div class="object-list-container">
-            <ul id="object-list" class="object-list"></ul>
+      <header id="topbar">
+        <div class="topbar-left">Navigation</div>
+        <div class="topbar-right">
+          <a class="topbar-link" href="../user_manual/">User Manual</a>
+        </div>
+      </header>
+      <div id="workspace">
+        <main id="viewport">
+          <div class="viewport-header">View Port</div>
+          <div id="viewport-frame">
+            <canvas id="viewport-canvas" aria-label="3D viewport"></canvas>
+            <aside id="viewport-tools">
+              <div class="viewport-tools-title">Viewport Navigation Tools</div>
+              <div class="env-gizmo-card">
+                <canvas id="env-gizmo-canvas" aria-label="Environment gizmo"></canvas>
+                <div class="env-gizmo-label">Gizmo</div>
+              </div>
+            </aside>
           </div>
-        </section>
-        <div id="transformation-panel-container"></div>
-      </aside>
+          <div id="status-bar">
+            <div class="status-left">Status Elements</div>
+            <div class="status-center">Undo / Redo</div>
+            <div class="status-right">
+              <span class="status-label">Confirmation Message</span>
+              <span id="status">Waiting for OBJ file...</span>
+            </div>
+          </div>
+        </main>
+        <aside id="side-panels">
+          <section id="outline-panel" class="side-panel">
+            <h2 class="panel-title">Outline Panel</h2>
+            <p id="object-list-empty" class="muted">No models imported.</p>
+            <div class="object-list-container">
+              <ul id="object-list" class="object-list"></ul>
+            </div>
+          </section>
+          <section id="control-panel" class="side-panel">
+            <h2 class="panel-title">Control Panel</h2>
+            <div class="panel-section">
+              <label for="obj-input">Import OBJ</label>
+              <input id="obj-input" type="file" accept=".obj" multiple />
+              <button id="obj-export" disabled>Export OBJ</button>
+              <button id="obj-delete" disabled>Delete Selected</button>
+            </div>
+            <div id="transformation-panel-container"></div>
+          </section>
+        </aside>
+      </div>
     </div>
     <script type="importmap">
       {
