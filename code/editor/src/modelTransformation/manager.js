@@ -1,6 +1,7 @@
 import { TransformationGizmo } from "./gizmo.js";
 import { TransformationPanel } from "./panel.js";
 import * as THREE from "three";
+import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
 import {
   UndoHistory,
   applyTransformSnapshot,
@@ -150,16 +151,48 @@ export class TransformationManager {
     // Restore gizmo to selected object (or newPart if you'd like to select the created component)
     if (newPart) {
       // Ensure world matrices are current
-      newPart.updateMatrixWorld(true);
+      // If splitMeshByBox returned an object with both parts, unpack
+      const insideMesh = newPart.inside || newPart;
+      const outsideMesh = newPart.outside || null;
+
+      insideMesh.updateMatrixWorld(true);
       // Explicitly select the created component and update gizmo/panel
-      this.selectObject(newPart);
-      this.gizmo.setObject(newPart);
-      this.panel.setObject(newPart);
+      this.selectObject(insideMesh);
+      this.gizmo.setObject(insideMesh);
+      this.panel.setObject(insideMesh);
       this.panel.updatePanelFromObject();
       this.gizmo.updateGizmoPosition();
       // Record the split as an action
       this.recordSnapshot('split');
       this.logAction('split');
+
+      // Export both parts as OBJ files so user can save them separately
+      try {
+        const exporter = new OBJExporter();
+        // Inside part
+        const objInside = exporter.parse(insideMesh);
+        const blobA = new Blob([objInside], { type: 'text/plain' });
+        const urlA = URL.createObjectURL(blobA);
+        const linkA = document.createElement('a');
+        linkA.href = urlA;
+        linkA.download = (insideMesh.name || 'part') + '.obj';
+        linkA.click();
+        URL.revokeObjectURL(urlA);
+
+        // Outside/rest part (if present)
+        if (outsideMesh) {
+          const objOutside = exporter.parse(outsideMesh);
+          const blobB = new Blob([objOutside], { type: 'text/plain' });
+          const urlB = URL.createObjectURL(blobB);
+          const linkB = document.createElement('a');
+          linkB.href = urlB;
+          linkB.download = (outsideMesh.name || 'rest') + '.obj';
+          linkB.click();
+          URL.revokeObjectURL(urlB);
+        }
+      } catch (e) {
+        console.warn('OBJ export failed:', e);
+      }
     } else {
       this.gizmo.setObject(this.selectedObject);
       this.panel.setObject(this.selectedObject);
@@ -478,8 +511,9 @@ export class TransformationManager {
     meshA.scale.set(1, 1, 1);
     group.add(meshA);
 
+    let meshB = null;
     if (geomB.attributes && geomB.attributes.position) {
-      const meshB = new THREE.Mesh(geomB, mesh.material && mesh.material.clone ? mesh.material.clone() : mesh.material);
+      meshB = new THREE.Mesh(geomB, mesh.material && mesh.material.clone ? mesh.material.clone() : mesh.material);
       meshB.name = mesh.name + "-rest";
       meshB.position.set(0, 0, 0);
       meshB.quaternion.identity();
@@ -495,7 +529,7 @@ export class TransformationManager {
 
     // Ensure world matrices are up-to-date
     meshA.updateMatrixWorld(true);
-    return meshA;
+    return { inside: meshA, outside: meshB, group };
   }
 
   // Provide the camera for raycasting and gizmo interactions.
