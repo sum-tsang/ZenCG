@@ -205,17 +205,8 @@ export class TransformationManager {
       event.preventDefault();
     }
 
-    // Check if clicking on gizmo
+    // Build selection ray first so we can prioritize real model hits over gizmo hit zones.
     this.wasDraggingGizmo = false;
-    const gizmoHandled = this.gizmo.onMouseDown(event, this.camera, this.canvas);
-    if (gizmoHandled) {
-      this.wasDraggingGizmo = true;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      return;
-    }
-
-    // Otherwise, try to select a model
     const rect = this.canvas.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -243,6 +234,33 @@ export class TransformationManager {
     }
 
     const intersects = this.raycaster.intersectObjects(selectableObjects);
+
+    // Decide whether the gizmo should handle the click before selection.
+    const gizmoHit = this.gizmo?.getHitInfo
+      ? this.gizmo.getHitInfo(event, this.camera, this.canvas)
+      : null;
+    let allowGizmo = false;
+    if (gizmoHit) {
+      if (intersects.length === 0) {
+        allowGizmo = true;
+      } else {
+        const hitObject = intersects[0].object;
+        const resolved = this.resolveSelection ? this.resolveSelection(hitObject) : hitObject;
+        const isDifferentObject = resolved && resolved !== this.selectedObject;
+        const gizmoCloser = gizmoHit.hit.distance <= intersects[0].distance - 1e-4;
+        allowGizmo = gizmoCloser && !(gizmoHit.resolved.isHitZone && isDifferentObject);
+      }
+    }
+
+    if (allowGizmo) {
+      const gizmoHandled = this.gizmo.onMouseDown(event, this.camera, this.canvas);
+      if (gizmoHandled) {
+        this.wasDraggingGizmo = true;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+    }
 
     let selectedObject = null;
     if (intersects.length > 0) {
