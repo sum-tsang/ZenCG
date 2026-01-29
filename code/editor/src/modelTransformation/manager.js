@@ -1,7 +1,7 @@
 import { TransformationGizmo } from "./gizmo.js";
 import { TransformationPanel } from "./panel.js";
 import * as THREE from "three";
-import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
+import { splitMeshByBox } from "../modelComponents/splitMeshByBox.js";
 import {
   UndoHistory,
   applyTransformSnapshot,
@@ -80,6 +80,8 @@ export class TransformationManager {
     this.setupEventListeners();
   }
 
+  // NOTE: split logic moved to modelComponents/splitMeshByBox.js
+
   // Attach pointer listeners for selection and gizmo interactions.
   setupEventListeners() {
     this.canvas.addEventListener("pointerdown", this.onMouseDown);
@@ -137,7 +139,7 @@ export class TransformationManager {
     const box = new THREE.Box3().setFromObject(this.boxMesh);
 
     // Perform split: extract faces whose centroids are inside box
-    const newPart = this.splitMeshByBox(this.selectedObject, box);
+    const parts = splitMeshByBox(this.selectedObject, box, this.scene);
 
     // Cleanup box
     this.scene.remove(this.boxMesh);
@@ -148,51 +150,19 @@ export class TransformationManager {
     this.boxHelper = null;
     this.boxSelecting = false;
 
-    // Restore gizmo to selected object (or newPart if you'd like to select the created component)
-    if (newPart) {
+    // Restore gizmo to selected object (or the 'inside' part if split produced parts)
+    if (parts && parts.inside) {
       // Ensure world matrices are current
-      // If splitMeshByBox returned an object with both parts, unpack
-      const insideMesh = newPart.inside || newPart;
-      const outsideMesh = newPart.outside || null;
-
-      insideMesh.updateMatrixWorld(true);
-      // Explicitly select the created component and update gizmo/panel
-      this.selectObject(insideMesh);
-      this.gizmo.setObject(insideMesh);
-      this.panel.setObject(insideMesh);
+      parts.inside.updateMatrixWorld(true);
+      // Select the created inside component and update gizmo/panel
+      this.selectObject(parts.inside);
+      this.gizmo.setObject(parts.inside);
+      this.panel.setObject(parts.inside);
       this.panel.updatePanelFromObject();
       this.gizmo.updateGizmoPosition();
       // Record the split as an action
       this.recordSnapshot('split');
       this.logAction('split');
-
-      // Export both parts as OBJ files so user can save them separately
-      try {
-        const exporter = new OBJExporter();
-        // Inside part
-        const objInside = exporter.parse(insideMesh);
-        const blobA = new Blob([objInside], { type: 'text/plain' });
-        const urlA = URL.createObjectURL(blobA);
-        const linkA = document.createElement('a');
-        linkA.href = urlA;
-        linkA.download = (insideMesh.name || 'part') + '.obj';
-        linkA.click();
-        URL.revokeObjectURL(urlA);
-
-        // Outside/rest part (if present)
-        if (outsideMesh) {
-          const objOutside = exporter.parse(outsideMesh);
-          const blobB = new Blob([objOutside], { type: 'text/plain' });
-          const urlB = URL.createObjectURL(blobB);
-          const linkB = document.createElement('a');
-          linkB.href = urlB;
-          linkB.download = (outsideMesh.name || 'rest') + '.obj';
-          linkB.click();
-          URL.revokeObjectURL(urlB);
-        }
-      } catch (e) {
-        console.warn('OBJ export failed:', e);
-      }
     } else {
       this.gizmo.setObject(this.selectedObject);
       this.panel.setObject(this.selectedObject);
@@ -399,138 +369,6 @@ export class TransformationManager {
     }
   }
 
-  // Split a mesh into two parts based on whether triangle centroids lie inside the given Box3
-  // Split a mesh into inside/outside parts based on a Box3.
-  splitMeshByBox(mesh, box3) {
-    const geom = mesh.geometry;
-    if (!geom || !geom.attributes || !geom.attributes.position) return null;
-
-    const posAttr = geom.getAttribute('position');
-    const normAttr = geom.getAttribute('normal');
-    const uvAttr = geom.getAttribute('uv');
-    const index = geom.index;
-
-    const worldMatrix = mesh.matrixWorld;
-
-    const insidePositions = [];
-    const insideNormals = [];
-    const insideUVs = [];
-    const outsidePositions = [];
-    const outsideNormals = [];
-    const outsideUVs = [];
-
-    // Push a vertex's attributes into the provided buffers.
-    function pushVertexTo(arrPos, arrNorm, arrUV, vi) {
-      arrPos.push(posAttr.getX(vi), posAttr.getY(vi), posAttr.getZ(vi));
-      if (normAttr) arrNorm.push(normAttr.getX(vi), normAttr.getY(vi), normAttr.getZ(vi));
-      if (uvAttr) arrUV.push(uvAttr.getX(vi), uvAttr.getY(vi));
-    }
-
-    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
-
-    if (index) {
-      for (let fi = 0; fi < index.count; fi += 3) {
-        const i0 = index.getX(fi);
-        const i1 = index.getX(fi + 1);
-        const i2 = index.getX(fi + 2);
-
-        a.fromBufferAttribute(posAttr, i0).applyMatrix4(worldMatrix);
-        b.fromBufferAttribute(posAttr, i1).applyMatrix4(worldMatrix);
-        c.fromBufferAttribute(posAttr, i2).applyMatrix4(worldMatrix);
-
-        const centroid = new THREE.Vector3().addVectors(a, b).add(c).multiplyScalar(1 / 3);
-
-        if (box3.containsPoint(centroid)) {
-          pushVertexTo(insidePositions, insideNormals, insideUVs, i0);
-          pushVertexTo(insidePositions, insideNormals, insideUVs, i1);
-          pushVertexTo(insidePositions, insideNormals, insideUVs, i2);
-        } else {
-          pushVertexTo(outsidePositions, outsideNormals, outsideUVs, i0);
-          pushVertexTo(outsidePositions, outsideNormals, outsideUVs, i1);
-          pushVertexTo(outsidePositions, outsideNormals, outsideUVs, i2);
-        }
-      }
-    } else {
-      // Non-indexed geometry: tri verts are sequential
-      for (let vi = 0; vi < posAttr.count; vi += 3) {
-        a.fromBufferAttribute(posAttr, vi).applyMatrix4(worldMatrix);
-        b.fromBufferAttribute(posAttr, vi + 1).applyMatrix4(worldMatrix);
-        c.fromBufferAttribute(posAttr, vi + 2).applyMatrix4(worldMatrix);
-        const centroid = new THREE.Vector3().addVectors(a, b).add(c).multiplyScalar(1 / 3);
-        if (box3.containsPoint(centroid)) {
-          pushVertexTo(insidePositions, insideNormals, insideUVs, vi);
-          pushVertexTo(insidePositions, insideNormals, insideUVs, vi + 1);
-          pushVertexTo(insidePositions, insideNormals, insideUVs, vi + 2);
-        } else {
-          pushVertexTo(outsidePositions, outsideNormals, outsideUVs, vi);
-          pushVertexTo(outsidePositions, outsideNormals, outsideUVs, vi + 1);
-          pushVertexTo(outsidePositions, outsideNormals, outsideUVs, vi + 2);
-        }
-      }
-    }
-
-    // If no inside faces, do nothing
-    if (insidePositions.length === 0) return null;
-
-    // Build new geometries
-    const geomA = new THREE.BufferGeometry();
-    geomA.setAttribute('position', new THREE.Float32BufferAttribute(insidePositions, 3));
-    if (insideNormals.length) geomA.setAttribute('normal', new THREE.Float32BufferAttribute(insideNormals, 3));
-    if (insideUVs.length) geomA.setAttribute('uv', new THREE.Float32BufferAttribute(insideUVs, 2));
-
-    const geomB = new THREE.BufferGeometry();
-    if (outsidePositions.length) {
-      geomB.setAttribute('position', new THREE.Float32BufferAttribute(outsidePositions, 3));
-      if (outsideNormals.length) geomB.setAttribute('normal', new THREE.Float32BufferAttribute(outsideNormals, 3));
-      if (outsideUVs.length) geomB.setAttribute('uv', new THREE.Float32BufferAttribute(outsideUVs, 2));
-    }
-
-    // Create meshes
-    const mat = mesh.material && mesh.material.clone ? mesh.material.clone() : mesh.material;
-    const meshA = new THREE.Mesh(geomA, mat);
-    meshA.name = mesh.name + "-part";
-    // Place both meshes under the same parent transform as original
-    const parent = mesh.parent || this.scene;
-    // Create group to hold replacement and place it in the scene root
-    const group = new THREE.Group();
-    group.name = mesh.name + "-splitGroup";
-    // Use the mesh's world transform so children stay in the same world positions
-    const worldPos = new THREE.Vector3();
-    const worldQuat = new THREE.Quaternion();
-    const worldScale = new THREE.Vector3();
-    mesh.getWorldPosition(worldPos);
-    mesh.getWorldQuaternion(worldQuat);
-    mesh.getWorldScale(worldScale);
-    group.position.copy(worldPos);
-    group.quaternion.copy(worldQuat);
-    group.scale.copy(worldScale);
-    this.scene.add(group);
-    // Reset meshA transform so it's local to the new group
-    meshA.position.set(0, 0, 0);
-    meshA.quaternion.identity();
-    meshA.scale.set(1, 1, 1);
-    group.add(meshA);
-
-    let meshB = null;
-    if (geomB.attributes && geomB.attributes.position) {
-      meshB = new THREE.Mesh(geomB, mesh.material && mesh.material.clone ? mesh.material.clone() : mesh.material);
-      meshB.name = mesh.name + "-rest";
-      meshB.position.set(0, 0, 0);
-      meshB.quaternion.identity();
-      meshB.scale.set(1,1,1);
-      group.add(meshB);
-    }
-
-    // Remove original mesh
-    // Remove original mesh from its parent
-    if (mesh.parent) mesh.parent.remove(mesh);
-    if (mesh.geometry) mesh.geometry.dispose();
-    // Note: not disposing original material to avoid side effects if shared
-
-    // Ensure world matrices are up-to-date
-    meshA.updateMatrixWorld(true);
-    return { inside: meshA, outside: meshB, group };
-  }
 
   // Provide the camera for raycasting and gizmo interactions.
   setCamera(camera) {
