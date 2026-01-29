@@ -6,7 +6,7 @@
 import * as THREE from "three";
 import { TransformationManager } from "./manager.js";
 
-// Example setup (you would have a scene, camera, and canvas already)
+// Set up a basic transformation manager example.
 export function setupTransformationExample(scene, camera, canvas) {
   // Create a test object to transform
   const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -44,9 +44,7 @@ export function setupTransformationExample(scene, camera, canvas) {
   return transformationManager;
 }
 
-/**
- * Advanced usage with multiple objects
- */
+// Set up a multi-object transformation example.
 export function setupMultipleObjects(scene, camera, canvas) {
   const objects = [];
 
@@ -93,9 +91,7 @@ export function setupMultipleObjects(scene, camera, canvas) {
   return transformationManager;
 }
 
-/**
- * Programmatic transformation example
- */
+// Apply a programmatic transform to a manager's selection.
 export function setProgrammaticTransform(transformationManager) {
   // You can set transforms programmatically
   const position = new THREE.Vector3(5, 2, 0);
@@ -110,9 +106,7 @@ export function setProgrammaticTransform(transformationManager) {
   transformationManager.panel.updatePanelFromObject();
 }
 
-/**
- * Export transformed object
- */
+// Build a serializable snapshot of an object's transform.
 export function exportTransformedObject(object) {
   const data = {
     position: object.position.toArray(),

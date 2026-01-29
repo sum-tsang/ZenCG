@@ -82,6 +82,25 @@ body {
   font-size: 0.85rem;
 }
 
+.library-import {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.library-row {
+  display: flex;
+  gap: 6px;
+}
+
+.library-row select {
+  flex: 1;
+  padding: 6px;
+  font-size: 0.85rem;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
 #panel button {
   padding: 8px;
   border: 1px solid #ccc;

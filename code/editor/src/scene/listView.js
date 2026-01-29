@@ -1,0 +1,49 @@
+// Render the imported object list UI.
+export function renderObjectList({ dom, state, onSelect, onDelete }) {
+  if (!(dom.objectList instanceof HTMLUListElement)) {
+    return;
+  }
+
+  dom.objectList.innerHTML = "";
+  const hasObjects = state.importedObjects.length > 0;
+
+  if (dom.objectListEmpty instanceof HTMLElement) {
+    dom.objectListEmpty.hidden = hasObjects;
+  }
+
+  if (!hasObjects) {
+    return;
+  }
+
+  state.importedObjects.forEach((object, index) => {
+    const item = document.createElement("li");
+    item.className = "object-item";
+    const row = document.createElement("div");
+    row.className = "object-row";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "object-button";
+    const label =
+      typeof object?.name === "string" && object.name
+        ? object.name
+        : `Object ${index + 1}`;
+    button.textContent = label;
+    if (object === state.currentObject) {
+      button.classList.add("active");
+    }
+    button.addEventListener("click", () => {
+      onSelect?.(object);
+    });
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "object-delete";
+    removeButton.textContent = "Delete";
+    removeButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      onDelete?.(object);
+    });
+    row.append(button, removeButton);
+    item.append(row);
+    dom.objectList.append(item);
+  });
+}

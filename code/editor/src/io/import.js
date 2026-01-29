@@ -1,6 +1,7 @@
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { setupObjExport } from "./export.js";
 
-// Setup OBJ Import
+// Wire up OBJ file input handling and parsing.
 export function setupObjImport({
   fileInput,
   container,
@@ -15,7 +16,7 @@ export function setupObjImport({
 
   const loader = new OBJLoader();
 
-  // Load OBJ From Text
+  // Parse an OBJ string and add it to the scene.
   function loadObjFromText(text, filename) {
     let object;
 
@@ -35,7 +36,7 @@ export function setupObjImport({
     setStatus?.(`Loaded ${filename}`);
   }
 
-  // Read File As Text
+  // Read a File as text.
   function readFileAsText(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -57,7 +58,7 @@ export function setupObjImport({
     });
   }
 
-  // Handle Files
+  // Handle a batch of selected files.
   async function handleFiles(files) {
     if (!files || files.length === 0) {
       return;
@@ -98,4 +99,65 @@ export function setupObjImport({
   });
 
   return { loadFromText: loadObjFromText };
+}
+
+// Coordinate OBJ import, export, and delete wiring.
+export function setupImportExport({
+  dom,
+  importRoot,
+  store,
+  config,
+  frameObject,
+  setStatus,
+  selectObject,
+  renderObjectList,
+  updateStoredTransform,
+  scheduleSave,
+  placeImportedObject,
+  applyTransform,
+  deleteImportedObject,
+}) {
+  const importer = setupObjImport({
+    fileInput: dom.fileInput,
+    container: importRoot,
+    frameObject,
+    setStatus,
+    onObjectLoaded: (object) => {
+      if (!object) return;
+      store.mutate((state) => {
+        placeImportedObject(object, state, config);
+        if (state.isRestoring && state.pendingTransforms.length > 0) {
+          const transform = state.pendingTransforms.shift();
+          applyTransform(object, transform);
+        }
+        state.importedObjects.push(object);
+        state.currentObject = object;
+      });
+      dom.exportButton.disabled = false;
+      dom.deleteButton.disabled = false;
+      selectObject(object);
+      renderObjectList();
+    },
+    onTextLoaded: (text, filename) => {
+      store.mutate((state) => {
+        state.storedImports.push({ name: filename, text });
+        if (state.currentObject) {
+          updateStoredTransform(state.currentObject, state);
+        }
+      });
+      scheduleSave();
+    },
+  });
+
+  setupObjExport({
+    button: dom.exportButton,
+    getObject: () => store.getState().currentObject,
+    setStatus,
+  });
+
+  dom.deleteButton.addEventListener("click", () => {
+    deleteImportedObject(store.getState().currentObject);
+  });
+
+  return importer;
 }

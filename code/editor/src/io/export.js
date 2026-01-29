@@ -1,6 +1,6 @@
 import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
 
-// Setup OBJ Export
+// Wire up OBJ export button handling.
 export function setupObjExport({ button, getObject, setStatus }) {
   if (!(button instanceof HTMLButtonElement)) {
     throw new Error("OBJ export button not found.");

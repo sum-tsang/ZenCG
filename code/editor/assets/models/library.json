@@ -1,0 +1,12 @@
+[
+  {
+    "id": "cube",
+    "name": "Cube",
+    "objPath": "./assets/models/cube.obj"
+  },
+  {
+    "id": "base_mesh",
+    "name": "Base Mesh",
+    "objPath": "./assets/models/base_mesh.obj"
+  }
+]

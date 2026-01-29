@@ -5,14 +5,15 @@ import {
   UndoHistory,
   applyTransformSnapshot,
   createTransformSnapshot,
-} from "../history/undo.js";
-import { ActionHistory } from "../history/actionHistory.js";
+} from "./undo.js";
+import { ActionHistory } from "./actionHistory.js";
 
 /**
  * TransformationManager - Orchestrates the 3D gizmo and UI panel
  * Handles real-time synchronization between gizmo interactions and numerical inputs
  */
 export class TransformationManager {
+  // Initialize manager state, gizmo, and panel wiring.
   constructor(scene, canvasElement, panelContainerId, options = {}) {
     this.scene = scene;
     this.canvas = canvasElement;
@@ -78,6 +79,7 @@ export class TransformationManager {
     this.setupEventListeners();
   }
 
+  // Attach pointer listeners for selection and gizmo interactions.
   setupEventListeners() {
     this.canvas.addEventListener("pointerdown", this.onMouseDown);
     document.addEventListener("pointermove", this.onMouseMove);
@@ -86,6 +88,7 @@ export class TransformationManager {
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   }
 
+  // Start a box selection workflow for component splitting.
   startBoxSelection() {
     if (!this.selectedObject) return;
     // Create box that matches selected object's bounds
@@ -125,6 +128,7 @@ export class TransformationManager {
     if (btn) btn.textContent = 'Confirm Component';
   }
 
+  // Confirm box selection and split the mesh.
   confirmBoxSelection() {
     if (!this.boxMesh || !this.selectedObject) return;
     // Compute box bounds in world space
@@ -165,6 +169,7 @@ export class TransformationManager {
     if (btn) btn.textContent = 'Create Component (click mesh)';
   }
 
+  // Cancel box selection and restore gizmo state.
   cancelBoxSelection() {
     if (!this.boxSelecting) return;
     if (this.boxMesh) {
@@ -188,6 +193,7 @@ export class TransformationManager {
     }
   }
 
+  // Handle pointer down events for selection/dragging.
   onMouseDown(event) {
     if (!this.camera) return;
 
@@ -281,6 +287,7 @@ export class TransformationManager {
     }
   }
 
+  // Handle pointer move events for hover/drag updates.
   onMouseMove(event) {
     if (!this.camera) return;
 
@@ -295,6 +302,7 @@ export class TransformationManager {
     }
   }
 
+  // Handle pointer up events for drag completion.
   onMouseUp(event) {
     this.gizmo.onMouseUp();
     if (this.wasDraggingGizmo) {
@@ -303,11 +311,13 @@ export class TransformationManager {
     }
   }
 
+  // Set the active object and update selection state.
   setObject(object) {
     this.currentObject = object;
     this.selectObject(object);
   }
 
+  // Select an object and sync gizmo/panel UI.
   selectObject(object) {
     const selectionChanged = this.selectedObject !== object;
     this.selectedObject = object;
@@ -335,6 +345,7 @@ export class TransformationManager {
   }
 
   // Split a mesh into two parts based on whether triangle centroids lie inside the given Box3
+  // Split a mesh into inside/outside parts based on a Box3.
   splitMeshByBox(mesh, box3) {
     const geom = mesh.geometry;
     if (!geom || !geom.attributes || !geom.attributes.position) return null;
@@ -353,6 +364,7 @@ export class TransformationManager {
     const outsideNormals = [];
     const outsideUVs = [];
 
+    // Push a vertex's attributes into the provided buffers.
     function pushVertexTo(arrPos, arrNorm, arrUV, vi) {
       arrPos.push(posAttr.getX(vi), posAttr.getY(vi), posAttr.getZ(vi));
       if (normAttr) arrNorm.push(normAttr.getX(vi), normAttr.getY(vi), normAttr.getZ(vi));
@@ -464,15 +476,18 @@ export class TransformationManager {
     return meshA;
   }
 
+  // Provide the camera for raycasting and gizmo interactions.
   setCamera(camera) {
     this.camera = camera;
     this.gizmo.setCamera(camera, this.canvas);
   }
 
+  // Set the current gizmo mode.
   setMode(mode) {
     this.gizmo.setMode(mode);
   }
 
+  // Reset undo history to the current object transform.
   resetUndoHistory() {
     this.undoHistory.clear();
     this.actionHistory.clear();
@@ -480,6 +495,7 @@ export class TransformationManager {
     this.recordSnapshot();
   }
 
+  // Record a transform snapshot for undo/history.
   recordSnapshot(action) {
     if (!this.selectedObject) return;
     const snapshot = createTransformSnapshot(this.selectedObject);
@@ -489,6 +505,7 @@ export class TransformationManager {
     }
   }
 
+  // Undo the last transform action.
   undo() {
     const snapshot = this.undoHistory.undo();
     if (!snapshot) return false;
@@ -508,6 +525,7 @@ export class TransformationManager {
     return true;
   }
 
+  // Append a user-facing action label to history.
   logAction(action) {
     const label = this.getActionLabel(action);
     if (!label) return;
@@ -515,6 +533,7 @@ export class TransformationManager {
     this.panel.renderHistory(this.actionHistory.entries());
   }
 
+  // Map internal actions to display labels.
   getActionLabel(action) {
     if (!action) return null;
     switch (action) {
@@ -533,6 +552,7 @@ export class TransformationManager {
     }
   }
 
+  // Dispose gizmo resources and detach event handlers.
   dispose() {
     this.canvas.removeEventListener("pointerdown", this.onMouseDown);
     document.removeEventListener("pointermove", this.onMouseMove);
@@ -541,12 +561,14 @@ export class TransformationManager {
     this.panel.dispose();
   }
 
+  // Register a transform change callback.
   onTransform(callback) {
     if (typeof callback !== "function") return () => {};
     this.transformListeners.add(callback);
     return () => this.transformListeners.delete(callback);
   }
 
+  // Emit a transform event to listeners.
   emitTransform(transform) {
     this.transformListeners.forEach((callback) => {
       callback(transform);

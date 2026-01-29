@@ -5,6 +5,7 @@ import * as THREE from "three";
  * Provides visual feedback for translate, rotate, and scale operations
  */
 export class TransformationGizmo {
+  // Initialize gizmo state and geometry.
   constructor(scene) {
     this.scene = scene;
     this.object = null;
@@ -38,6 +39,9 @@ export class TransformationGizmo {
     this.rotationStartVector = new THREE.Vector3();
     this.rotationStartWorldQuat = new THREE.Quaternion();
     this.rotationParentWorldQuat = new THREE.Quaternion();
+    this.dragAxisWorld = new THREE.Vector3();
+    this.dragAxisOriginWorld = new THREE.Vector3();
+    this.dragAxisStartT = 0;
     this.camera = null;
     this.viewport = null;
     this.axisLength = 6;
@@ -57,6 +61,7 @@ export class TransformationGizmo {
     this.initializeAxes();
   }
 
+  // Build axis meshes and interaction handles.
   initializeAxes() {
     const axisLength = this.axisLength;
     const arrowHeadLength = 1.8;
@@ -146,6 +151,7 @@ export class TransformationGizmo {
     this.addRotationRings();
   }
 
+  // Add rotation rings for rotate mode.
   addRotationRings() {
     const ringRadius = 5;
     const ringThickness = 0.2;
@@ -179,11 +185,13 @@ export class TransformationGizmo {
     });
   }
 
+  // Set the active camera and viewport for hit testing.
   setCamera(camera, viewport) {
     this.camera = camera ?? null;
     if (viewport) this.viewport = viewport;
   }
 
+  // Bind the gizmo to a target object.
   setObject(object) {
     this.object = object;
     if (object) {
@@ -191,6 +199,7 @@ export class TransformationGizmo {
     }
   }
 
+  // Switch gizmo mode between translate/rotate/scale.
   setMode(mode) {
     if (["translate", "rotate", "scale"].includes(mode)) {
       this.mode = mode;
@@ -201,6 +210,7 @@ export class TransformationGizmo {
     }
   }
 
+  // Update gizmo position to match the bound object.
   updateGizmoPosition() {
     if (!this.object) return;
 
@@ -220,6 +230,7 @@ export class TransformationGizmo {
     this.updateGizmoScale(worldPos);
   }
 
+  // Keep the gizmo a consistent screen size.
   updateGizmoScale(worldPos) {
     if (!this.camera || !this.viewport) return;
 
@@ -240,6 +251,7 @@ export class TransformationGizmo {
     this.gizmoGroup.scale.setScalar(scale);
   }
 
+  // Show/hide elements based on the current mode.
   updateGizmoAppearance() {
     // Adjust gizmo appearance based on mode
     const arrowScale = this.mode === "scale" ? 1.2 : 1;
@@ -265,6 +277,7 @@ export class TransformationGizmo {
   }
 
   // Raycast under mouse to highlight handles and change cursor
+  // Highlight the gizmo axis under the cursor.
   highlightUnderMouse(event, camera, container) {
     if (!container) return;
     const rect = container.getBoundingClientRect();
@@ -272,6 +285,7 @@ export class TransformationGizmo {
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, camera);
 
+    // Restore the default opacity for a gizmo handle.
     const resetOpacity = (object) => {
       if (!object?.material) return;
       const baseOpacity = object.userData?.baseOpacity;
@@ -327,6 +341,7 @@ export class TransformationGizmo {
     }
   }
 
+  // Normalize hit data for gizmo handle detection.
   resolveHitData(object) {
     let current = object;
     let axis = null;
@@ -343,6 +358,7 @@ export class TransformationGizmo {
     return { axis, handleType, isHitZone };
   }
 
+  // Begin drag interactions when a handle is clicked.
   onMouseDown(event, camera, container, forceFreeTranslate = false) {
     if (event.button !== 0 && event.button !== 2) return false;
 
@@ -420,10 +436,29 @@ export class TransformationGizmo {
       this.initialScale.y = originalScale.y;
       this.initialScale.z = originalScale.z;
 
+      if (this.mode === "translate") {
+        // Cache world axis data for robust axis dragging (no plane degeneracy)
+        this.object.updateMatrixWorld(true);
+        this.object.getWorldPosition(this.dragAxisOriginWorld);
+        this.dragAxisWorld
+          .copy(this.getAxisVector())
+          .applyQuaternion(this.gizmoGroup.quaternion)
+          .normalize();
+        const startT = this.getAxisRayParameter(
+          this.raycaster.ray,
+          this.dragAxisOriginWorld,
+          this.dragAxisWorld
+        );
+        this.dragAxisStartT = Number.isFinite(startT) ? startT : 0;
+      }
+
+      const isScale = this.handleType === "scale" || this.mode === "scale";
+      const isRotate = this.handleType === "rotate" || this.mode === "rotate";
+
       // Setup drag plane for rotation/scale
       // For scaling, use a plane perpendicular to camera view so mouse movement
-      // projects naturally onto the axis direction
-      if (this.handleType === "scale" || this.mode === "scale") {
+      // projects naturally onto the axis direction.
+      if (isScale) {
         // Use camera-facing plane - this allows the handle to follow mouse direction
         const cameraDirection = new THREE.Vector3();
         camera.getWorldDirection(cameraDirection);
@@ -433,7 +468,7 @@ export class TransformationGizmo {
         this.object.getWorldPosition(worldPos);
 
         this.dragPlane.setFromNormalAndCoplanarPoint(normal, worldPos);
-      } else {
+      } else if (isRotate) {
         // For rotation, use plane perpendicular to axis in world space
         const axisWorld = this.getAxisVector()
           .clone()
@@ -445,11 +480,13 @@ export class TransformationGizmo {
         this.dragPlane.setFromNormalAndCoplanarPoint(axisWorld, this.rotationCenterWorld);
       }
 
-      // Get initial drag point
-      this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
-      this.initialDragPoint.copy(this.lastDragPoint);
+      if (isScale || isRotate) {
+        // Get initial drag point
+        this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
+        this.initialDragPoint.copy(this.lastDragPoint);
+      }
 
-      if (this.handleType === "rotate" || this.mode === "rotate") {
+      if (isRotate) {
         this.object.getWorldQuaternion(this.rotationStartWorldQuat);
         if (this.object.parent) {
           this.object.parent.getWorldQuaternion(this.rotationParentWorldQuat);
@@ -498,6 +535,7 @@ export class TransformationGizmo {
     return false;
   }
 
+  // Update transformations while dragging.
   onMouseMove(event, camera, container) {
     if (!this.isDragging || !this.object || !this.axis) return;
     if (event.buttons !== undefined) {
@@ -517,12 +555,13 @@ export class TransformationGizmo {
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, camera);
-    this.raycaster.ray.intersectPlane(this.dragPlane, this.dragPoint);
-
-    const delta = new THREE.Vector3().subVectors(this.dragPoint, this.lastDragPoint);
+    let didUpdateDragPoint = false;
 
     if (this.mode === "translate") {
       if (this.axis === "free") {
+        this.raycaster.ray.intersectPlane(this.dragPlane, this.dragPoint);
+        const delta = new THREE.Vector3().subVectors(this.dragPoint, this.lastDragPoint);
+        didUpdateDragPoint = true;
         // Free movement - apply world-space delta to the object's local position
         // Ensure matrices are current so world/local conversions are accurate
         if (this.object.parent) this.object.parent.updateMatrixWorld(true);
@@ -536,10 +575,12 @@ export class TransformationGizmo {
         }
         this.object.position.copy(worldPos);
       } else {
-        // Constrained movement along axis
-        this.handleTranslate(delta);
+        // Constrained movement along axis using ray/axis closest points
+        this.handleTranslate(this.raycaster.ray);
       }
     } else {
+      this.raycaster.ray.intersectPlane(this.dragPlane, this.dragPoint);
+      didUpdateDragPoint = true;
       // Prefer explicit handle type (e.g., clicking a scale handle)
       if (this.handleType === "scale" || this.mode === "scale") {
         // Use screen-space distance for stable scaling
@@ -549,7 +590,9 @@ export class TransformationGizmo {
       }
     }
 
-    this.lastDragPoint.copy(this.dragPoint);
+    if (didUpdateDragPoint) {
+      this.lastDragPoint.copy(this.dragPoint);
+    }
     
     // Update gizmo position, but for scaling, only update position/rotation, not scale
     // to prevent feedback loops
@@ -577,28 +620,41 @@ export class TransformationGizmo {
     }
   }
 
-  handleTranslate(delta) {
-    // Apply axis-constrained translation in world-space then convert to local
-    const axisVector = this.getAxisVector();
-    if (axisVector.lengthSq() === 0) return;
+  // Apply translation deltas along the selected axis.
+  handleTranslate(ray) {
+    // Apply axis-constrained translation using closest points between ray and axis.
+    if (!ray) return;
+    if (this.dragAxisWorld.lengthSq() === 0) return;
 
-    // axisVector is in local space of the gizmo; convert to world-space
-    const worldAxis = axisVector.clone().applyQuaternion(this.gizmoGroup.quaternion).normalize();
+    const t = this.getAxisRayParameter(ray, this.dragAxisOriginWorld, this.dragAxisWorld);
+    if (!Number.isFinite(t)) return;
 
-    // Project delta onto world axis
-    const projectedDelta = worldAxis.clone().multiplyScalar(delta.dot(worldAxis));
+    const delta = this.dragAxisWorld.clone().multiplyScalar(t - this.dragAxisStartT);
+    const worldPos = this.dragAxisOriginWorld.clone().add(delta);
 
-    // Compute new world position and convert to parent-local
     if (this.object.parent) this.object.parent.updateMatrixWorld(true);
-    this.object.updateMatrixWorld(true);
-
-    const worldPos = new THREE.Vector3();
-    this.object.getWorldPosition(worldPos);
-    worldPos.add(projectedDelta);
     if (this.object.parent) this.object.parent.worldToLocal(worldPos);
     this.object.position.copy(worldPos);
   }
 
+  getAxisRayParameter(ray, axisOrigin, axisDirection) {
+    const r = new THREE.Vector3().subVectors(axisOrigin, ray.origin);
+    const a = axisDirection.dot(axisDirection);
+    const e = ray.direction.dot(ray.direction);
+    const b = axisDirection.dot(ray.direction);
+    const c = axisDirection.dot(r);
+    const f = ray.direction.dot(r);
+    const denom = a * e - b * b;
+
+    if (Math.abs(denom) < 1e-6) {
+      // Lines are nearly parallel; fall back to closest point to ray origin.
+      return -c / a;
+    }
+
+    return (b * f - c * e) / denom;
+  }
+
+  // Apply rotation based on drag angle.
   handleRotate() {
     if (this.rotationStartVector.lengthSq() === 0) return;
 
@@ -623,6 +679,7 @@ export class TransformationGizmo {
     this.object.quaternion.copy(newLocalQuat);
   }
 
+  // Apply scaling along the selected axis.
   handleScale(event) {
     // Use vertical mouse movement to compute a multiplicative scale factor.
     // Use vertical mouse movement relative to the initial click to compute
@@ -650,6 +707,7 @@ export class TransformationGizmo {
     this.object.scale.copy(scale);
   }
 
+  // Resolve the active axis vector.
   getAxisVector() {
     switch (this.axis) {
       case "x":
@@ -663,6 +721,7 @@ export class TransformationGizmo {
     }
   }
 
+  // Finalize drag interactions and emit commits.
   onMouseUp() {
     if (this.isDragging) {
       // If we were scaling, trigger transform callback now to update panel
@@ -684,10 +743,12 @@ export class TransformationGizmo {
     }
   }
 
+  // Register a transform event callback.
   onTransform(callback) {
     this.listeners.onTransform = callback;
   }
 
+  // Set gizmo and object transforms programmatically.
   setTransform(position, rotation, scale) {
     if (this.object) {
       if (position) this.object.position.copy(position);
@@ -703,14 +764,17 @@ export class TransformationGizmo {
     }
   }
 
+  // Show the gizmo group.
   show() {
     this.gizmoGroup.visible = true;
   }
 
+  // Hide the gizmo group.
   hide() {
     this.gizmoGroup.visible = false;
   }
 
+  // Dispose geometries and materials.
   dispose() {
     this.gizmoGroup.children.forEach((child) => {
       if (child.geometry) child.geometry.dispose();

@@ -19,6 +19,15 @@
         <h1>ZenCG Editor</h1>
         <label for="obj-input">Import OBJ</label>
         <input id="obj-input" type="file" accept=".obj" multiple />
+        <div class="library-import">
+          <label for="library-select">Model Library</label>
+          <div class="library-row">
+            <select id="library-select" disabled>
+              <option value="">Loading library...</option>
+            </select>
+            <button id="library-import" disabled>Import</button>
+          </div>
+        </div>
         <button id="obj-export" disabled>Export OBJ</button>
         <button id="obj-delete" disabled>Delete Selected</button>
         <p id="status">Waiting for OBJ file...</p>

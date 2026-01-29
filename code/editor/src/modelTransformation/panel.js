@@ -5,6 +5,7 @@ import * as THREE from "three";
  * Provides precise control over translate, rotate, and scale operations
  */
 export class TransformationPanel {
+  // Initialize panel UI state and wire events.
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     if (!this.container) {
@@ -32,6 +33,7 @@ export class TransformationPanel {
     this.initializeUI();
   }
 
+  // Build the panel DOM structure and inputs.
   initializeUI() {
     // Clear existing content
     this.container.innerHTML = "";
@@ -113,6 +115,7 @@ export class TransformationPanel {
     this.setupListeners();
   }
 
+  // Create a titled panel section wrapper.
   createSection(title) {
     const section = document.createElement("div");
     section.className = "transform-section";
@@ -125,6 +128,7 @@ export class TransformationPanel {
     return section;
   }
 
+  // Create a position/rotation/scale input section.
   createTransformSection(title, property, label) {
     const section = this.createSection(title);
     section.className = "transform-section expanded";
@@ -179,10 +183,12 @@ export class TransformationPanel {
     return section;
   }
 
+  // Hook any delegated listeners for the panel.
   setupListeners() {
     // Delegate click handlers for mode buttons are already set up in initializeUI
   }
 
+  // Switch the active transform mode and visible inputs.
   setMode(mode) {
     const buttons = this.container.querySelectorAll(".mode-btn");
     buttons.forEach((btn) => btn.classList.remove("active"));
@@ -212,6 +218,7 @@ export class TransformationPanel {
     }
   }
 
+  // Handle numeric input changes and emit transforms.
   onInputChange(input, commit = false) {
     const property = input.dataset.property;
     const axis = input.dataset.axis;
@@ -266,6 +273,7 @@ export class TransformationPanel {
     }
   }
 
+  // Bind the panel to a target object.
   setObject(object) {
     this.transformObject = object;
     if (object) {
@@ -273,6 +281,7 @@ export class TransformationPanel {
     }
   }
 
+  // Attach the active gizmo to drive UI updates.
   setGizmo(gizmo) {
     this.gizmo = gizmo;
     if (this.gizmo && this.transformObject) {
@@ -281,10 +290,12 @@ export class TransformationPanel {
     }
   }
 
+  // Register a split request callback.
   onSplit(callback) {
     this.listeners.onSplitRequest = callback;
   }
 
+  // Refresh input values from the bound object.
   updatePanelFromObject() {
     if (!this.transformObject) return;
 
@@ -319,6 +330,7 @@ export class TransformationPanel {
     this.isUpdatingFromGizmo = false;
   }
 
+  // Sync input fields from the current state values.
   updateInputFields() {
     const { position, rotation, scale } = this.state;
 
@@ -341,6 +353,7 @@ export class TransformationPanel {
     });
   }
 
+  // Reset the bound object to default transforms.
   resetTransform() {
     if (!this.transformObject) return;
 
@@ -373,14 +386,17 @@ export class TransformationPanel {
     }
   }
 
+  // Register a transform change callback.
   onTransform(callback) {
     this.listeners.onTransform = callback;
   }
 
+  // Return the current transform mode.
   getCurrentMode() {
     return this.currentMode;
   }
 
+  // Render the action history list.
   renderHistory(entries = []) {
     if (!this.historyList) return;
     this.historyList.innerHTML = "";
@@ -401,6 +417,7 @@ export class TransformationPanel {
     });
   }
 
+  // Update inputs from gizmo-driven transforms.
   updateFromGizmo(transform) {
     this.isUpdatingFromGizmo = true;
 
