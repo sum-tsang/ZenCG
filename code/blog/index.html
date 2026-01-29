@@ -49,6 +49,10 @@
         min-height: 100vh;
       }
 
+      body.lightbox-open {
+        overflow: hidden;
+      }
+
       #post-list li {
         padding: 1.1rem 0;
         border-bottom: 1px solid var(--stroke);
@@ -105,6 +109,12 @@
         color: var(--slate);
       }
 
+      .post-content hr {
+        margin: 1.5rem 0;
+        border: none;
+        border-top: 1px solid var(--stroke);
+      }
+
       .post-content ul {
         margin-top: 0.75rem;
         padding-left: 1.25rem;
@@ -149,6 +159,80 @@
         border: 1px solid var(--stroke);
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
         background: var(--paper);
+        cursor: zoom-in;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .post-content img:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 22px 44px rgba(15, 23, 42, 0.16);
+      }
+
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(5, 5, 5, 0.68);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 50;
+      }
+
+      .lightbox.is-open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .lightbox__overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+      }
+
+      .lightbox__content {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        max-width: min(90vw, 1100px);
+        max-height: 85vh;
+        z-index: 1;
+      }
+
+      .lightbox__content img {
+        max-width: 100%;
+        max-height: 85vh;
+        border-radius: 0.9rem;
+        box-shadow: 0 35px 80px rgba(0, 0, 0, 0.45);
+        background: var(--paper);
+        cursor: zoom-out;
+      }
+
+      .lightbox__close {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 999px;
+        border: none;
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--accent-2);
+        font-size: 1.5rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+        cursor: pointer;
+        z-index: 2;
+      }
+
+      .lightbox__close:hover {
+        background: #ffffff;
       }
     </style>
   </head>
@@ -201,6 +285,16 @@
       </main>
     </div>
 
-    <script type="module" src="./scripts/blog.js"></script>
+    <div id="image-lightbox" class="lightbox" aria-hidden="true">
+      <div class="lightbox__overlay" data-lightbox-close></div>
+      <div class="lightbox__content" role="dialog" aria-modal="true">
+        <img id="lightbox-image" alt="" />
+      </div>
+      <button class="lightbox__close" type="button" aria-label="Close image" data-lightbox-close>
+        x
+      </button>
+    </div>
+
+    <script type="module" src="./src/blog.js"></script>
   </body>
 </html>

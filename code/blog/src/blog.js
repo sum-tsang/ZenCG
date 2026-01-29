@@ -5,6 +5,8 @@ const postTitle = document.getElementById("post-title");
 const postMeta = document.getElementById("post-meta");
 const postContent = document.getElementById("post-content");
 const backLink = document.getElementById("back-link");
+const lightbox = document.getElementById("image-lightbox");
+const lightboxImage = document.getElementById("lightbox-image");
 
 if (!postList || !postTitle || !postMeta || !postContent || !backLink) {
   throw new Error("Blog layout is missing required elements.");
@@ -13,6 +15,7 @@ if (!postList || !postTitle || !postMeta || !postContent || !backLink) {
 let posts = [];
 const baseUrl = new URL("../", import.meta.url);
 
+// Escape HTML special characters for safe rendering.
 function escapeHtml(text) {
   return text
     .replace(/&/g, "&amp;")
@@ -22,6 +25,7 @@ function escapeHtml(text) {
     .replace(/'/g, "&#39;");
 }
 
+// Convert inline markdown syntax into HTML.
 function formatInline(text) {
   return text
     .replace(/!\[([^\]]*?)\]\(([^)\s]+?)(?:\s+&quot;(.+?)&quot;)?\)/g, (match, alt, src, title) => {
@@ -34,6 +38,7 @@ function formatInline(text) {
     .replace(/\[(.+?)\]\((.+?)\)/g, "<a href=\"$2\">$1</a>");
 }
 
+// Render a subset of markdown into HTML.
 function renderMarkdown(markdown) {
   const lines = markdown.split(/\r?\n/);
   let html = "";
@@ -41,6 +46,7 @@ function renderMarkdown(markdown) {
   let inCode = false;
   let paragraph = [];
 
+  // Flush the buffered paragraph lines into HTML.
   const flushParagraph = () => {
     if (paragraph.length === 0) {
       return;
@@ -50,6 +56,7 @@ function renderMarkdown(markdown) {
     paragraph = [];
   };
 
+  // Close an open list if needed.
   const closeList = () => {
     if (inList) {
       html += "</ul>";
@@ -57,6 +64,7 @@ function renderMarkdown(markdown) {
     }
   };
 
+  // Close an open code block if needed.
   const closeCode = () => {
     if (inCode) {
       html += "</code></pre>";
@@ -79,6 +87,13 @@ function renderMarkdown(markdown) {
 
     if (inCode) {
       html += `${escapeHtml(line)}\n`;
+      return;
+    }
+
+    if (line.trim().match(/^-{3,}$/)) {
+      flushParagraph();
+      closeList();
+      html += "<hr />";
       return;
     }
 
@@ -119,16 +134,43 @@ function renderMarkdown(markdown) {
   return html;
 }
 
+// Open the image lightbox for a given image element.
+function openLightbox(image) {
+  if (!lightbox || !lightboxImage) {
+    return;
+  }
+  lightboxImage.src = image.currentSrc || image.src;
+  lightboxImage.alt = image.alt || "";
+  lightbox.classList.add("is-open");
+  lightbox.setAttribute("aria-hidden", "false");
+  document.body.classList.add("lightbox-open");
+}
+
+// Close the image lightbox and reset its state.
+function closeLightbox() {
+  if (!lightbox || !lightboxImage) {
+    return;
+  }
+  lightbox.classList.remove("is-open");
+  lightbox.setAttribute("aria-hidden", "true");
+  lightboxImage.src = "";
+  lightboxImage.alt = "";
+  document.body.classList.remove("lightbox-open");
+}
+
+// Show the post list view and hide the post view.
 function showList() {
   listView.hidden = false;
   postView.hidden = true;
 }
 
+// Show the post view and hide the list view.
 function showPost() {
   listView.hidden = true;
   postView.hidden = false;
 }
 
+// Render the list of available blog posts.
 function renderPostList() {
   postList.innerHTML = "";
 
@@ -147,6 +189,7 @@ function renderPostList() {
   });
 }
 
+// Fetch and render a single post by slug.
 async function renderPost(slug) {
   const post = posts.find((entry) => entry.slug === slug);
   if (!post) {
@@ -176,6 +219,7 @@ async function renderPost(slug) {
   }
 }
 
+// Handle hash-based route changes.
 function onRouteChange() {
   const slug = window.location.hash.replace("#", "").trim();
   if (!slug) {
@@ -186,9 +230,10 @@ function onRouteChange() {
   renderPost(slug);
 }
 
+// Initialize blog data and render the initial view.
 async function init() {
   try {
-    const response = await fetch(new URL("data/posts.json", baseUrl));
+    const response = await fetch(new URL("src/posts.json", baseUrl));
     posts = await response.json();
     posts.sort((a, b) => (a.date < b.date ? 1 : -1));
     renderPostList();
@@ -207,6 +252,29 @@ backLink.addEventListener("click", (event) => {
   event.preventDefault();
   history.replaceState(null, "", window.location.pathname + window.location.search);
   showList();
+});
+
+if (postContent) {
+  postContent.addEventListener("click", (event) => {
+    const target = event.target;
+    if (target && target.tagName === "IMG") {
+      openLightbox(target);
+    }
+  });
+}
+
+if (lightbox) {
+  lightbox.addEventListener("click", (event) => {
+    if (event.target.matches("[data-lightbox-close]")) {
+      closeLightbox();
+    }
+  });
+}
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && lightbox && lightbox.classList.contains("is-open")) {
+    closeLightbox();
+  }
 });
 
 init();

@@ -5,9 +5,9 @@ This blog is a static site that renders Markdown in the browser.
 ## File map
 
 - `index.html`: Blog shell and layout.
-- `scripts/blog.js`: Client-side router, Markdown renderer, and post loader.
-- `styles/blog.css`: Blog styling.
-- `data/posts.json`: Post index (list view).
+- `src/blog.js`: Client-side router, Markdown renderer, and post loader.
+- `src/blog.css`: Blog styling.
+- `src/posts.json`: Post index (list view).
 - `posts/`: Markdown content for each post.
 - `assets/`: Images for posts.
 
@@ -32,7 +32,7 @@ Summary paragraph: what changed and why it matters.
 - Design decision or tradeoff.
 ```
 
-3) Add the post to `code/blog/data/posts.json`:
+3) Add the post to `code/blog/src/posts.json`:
 
 ```json
 {
