@@ -18,6 +18,8 @@ export function updateSelectionOutline(selectionHelper, object) {
     return;
   }
 
-  selectionHelper.setFromObject(object);
+  if (typeof selectionHelper.setFromObject === "function") {
+    selectionHelper.setFromObject(object);
+  }
   selectionHelper.visible = true;
 }

@@ -31,6 +31,7 @@ export class TransformationGizmo {
     this.highlightedObject = null;
     this.startMouseScreenY = 0;
     this.lastMouseScreenY = 0;
+    this.lastMouseScreenX = 0;
     this.initialMouseScreen = new THREE.Vector2();
     this.initialHandleWorldPos = new THREE.Vector3();
     this.dragButton = null;
@@ -42,6 +43,11 @@ export class TransformationGizmo {
     this.dragAxisWorld = new THREE.Vector3();
     this.dragAxisOriginWorld = new THREE.Vector3();
     this.dragAxisStartT = 0;
+    this.scaleAxisWorld = new THREE.Vector3();
+    this.scaleAxisOriginWorld = new THREE.Vector3();
+    this.scaleAxisStartT = 0;
+    this.scaleAxisLastT = 0;
+    this.scaleAxisScreenDir = new THREE.Vector2();
     this.camera = null;
     this.viewport = null;
     this.axisLength = 6;
@@ -59,14 +65,16 @@ export class TransformationGizmo {
     };
 
     this.initializeAxes();
+    this.updateGizmoAppearance();
   }
 
   // Build axis meshes and interaction handles.
   initializeAxes() {
     const axisLength = this.axisLength;
-    const arrowHeadLength = 1.8;
-    const shaftRadius = 0.2;
-    const headRadius = 0.35;
+    const shaftRadius = 0.14;
+    const arrowHeadLength = 1.4;
+    const headRadius = 0.38;
+    const shaftLength = axisLength - arrowHeadLength * 0.6;
 
     // Colors: Red (X), Green (Y), Blue (Z)
     const colors = {
@@ -84,17 +92,17 @@ export class TransformationGizmo {
     Object.entries(colors).forEach(([axis, color]) => {
       const direction = directions[axis];
       
-      // Create arrow mesh for visual representation (thicker than line helpers)
+      // Create arrow handle for translate mode
       const arrowGroup = new THREE.Group();
       arrowGroup.name = `axis-${axis}`;
       arrowGroup.userData.axis = axis;
       arrowGroup.userData.isGizmoAxis = true;
       arrowGroup.userData.isArrowGroup = true;
 
-      const shaftGeom = new THREE.CylinderGeometry(shaftRadius, shaftRadius, axisLength, 12);
+      const shaftGeom = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 16);
       const shaftMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 });
       const shaft = new THREE.Mesh(shaftGeom, shaftMat);
-      shaft.position.y = axisLength / 2;
+      shaft.position.y = shaftLength / 2;
       shaft.userData.axis = axis;
       shaft.userData.isGizmoAxis = true;
       shaft.userData.isArrowVisual = true;
@@ -102,10 +110,10 @@ export class TransformationGizmo {
       shaft.material.depthTest = false;
       shaft.renderOrder = 2;
 
-      const headGeom = new THREE.ConeGeometry(headRadius, arrowHeadLength, 16);
+      const headGeom = new THREE.ConeGeometry(headRadius, arrowHeadLength, 18);
       const headMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 });
       const head = new THREE.Mesh(headGeom, headMat);
-      head.position.y = axisLength + arrowHeadLength / 2;
+      head.position.y = shaftLength + arrowHeadLength / 2;
       head.userData.axis = axis;
       head.userData.isGizmoAxis = true;
       head.userData.isArrowVisual = true;
@@ -145,6 +153,19 @@ export class TransformationGizmo {
       }
 
       this.gizmoGroup.add(cylinder);
+
+      // Scale handle (box) for scale mode.
+      const scaleGeom = new THREE.BoxGeometry(0.75, 0.75, 0.75);
+      const scaleMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8 });
+      const scaleHandle = new THREE.Mesh(scaleGeom, scaleMat);
+      scaleHandle.position.copy(direction).multiplyScalar(axisLength + 0.7);
+      scaleHandle.userData.axis = axis;
+      scaleHandle.userData.isGizmoAxis = true;
+      scaleHandle.userData.handleType = "scale";
+      scaleHandle.userData.baseOpacity = 0.8;
+      scaleHandle.renderOrder = 2;
+      scaleHandle.material.depthTest = false;
+      this.gizmoGroup.add(scaleHandle);
     });
 
     // Add rotation rings for rotate mode.
@@ -153,8 +174,8 @@ export class TransformationGizmo {
 
   // Add rotation rings for rotate mode.
   addRotationRings() {
-    const ringRadius = 5;
-    const ringThickness = 0.2;
+    const ringRadius = 5.2;
+    const ringThickness = 0.16;
 
     const ringDefs = [
       { axis: "x", color: 0xff0000, normal: new THREE.Vector3(1, 0, 0) },
@@ -168,7 +189,7 @@ export class TransformationGizmo {
       const ringMat = new THREE.MeshBasicMaterial({
         color,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.55,
         side: THREE.DoubleSide,
       });
       const ring = new THREE.Mesh(ringGeom, ringMat);
@@ -259,7 +280,7 @@ export class TransformationGizmo {
       // Arrows scale slightly when in scale mode
       if (child.userData && child.userData.isArrowGroup) {
         child.scale.set(arrowScale, arrowScale, arrowScale);
-        child.visible = true;
+        child.visible = this.mode === "translate";
       }
 
       // Scale handles: visible only in scale mode
@@ -304,9 +325,7 @@ export class TransformationGizmo {
       object.material.opacity = defOpacity;
     };
 
-    const interactive = this.gizmoGroup.children.filter(
-      (c) => c.userData && (c.userData.isGizmoAxis || c.userData.isRotationRing)
-    );
+    const interactive = this.getInteractiveObjects();
     const intersects = this.raycaster.intersectObjects(interactive, true);
 
     if (intersects.length > 0) {
@@ -339,6 +358,39 @@ export class TransformationGizmo {
         this.highlightedObject = null;
       }
     }
+  }
+
+  // Return the closest gizmo hit (if any) without starting a drag.
+  getHitInfo(event, camera, container) {
+    if (!container) return null;
+    const rect = container.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.mouse, camera);
+
+    const interactive = this.getInteractiveObjects();
+    const intersects = this.raycaster.intersectObjects(interactive, true);
+    if (!intersects.length) return null;
+
+    const hit = intersects[0];
+    const resolved = this.resolveHitData(hit.object);
+    return { hit, resolved };
+  }
+
+  getInteractiveObjects() {
+    if (this.mode === "scale") {
+      return this.gizmoGroup.children.filter(
+        (c) => c.userData && c.userData.handleType === "scale"
+      );
+    }
+    if (this.mode === "rotate") {
+      return this.gizmoGroup.children.filter(
+        (c) => c.userData && c.userData.handleType === "rotate"
+      );
+    }
+    return this.gizmoGroup.children.filter(
+      (c) => c.userData && c.userData.isGizmoAxis && !c.userData.handleType
+    );
   }
 
   // Normalize hit data for gizmo handle detection.
@@ -376,7 +428,7 @@ export class TransformationGizmo {
     // translations when clicking empty space.
 
     // For rotate and scale modes, use axis-based interaction
-    const interactiveObjects = this.gizmoGroup.children.filter((child) => child.userData.isGizmoAxis);
+    const interactiveObjects = this.getInteractiveObjects();
     const intersects = this.raycaster.intersectObjects(interactiveObjects, true);
 
     // Also test whether the click hit the current object (for translate mode)
@@ -398,6 +450,7 @@ export class TransformationGizmo {
       this.object.getWorldQuaternion(this.initialQuaternion);
       this.startMouseScreenY = event.clientY;
       this.lastMouseScreenY = event.clientY;
+      this.lastMouseScreenX = event.clientX;
       
       // Store initial mouse position for screen-space scaling
       const rect = container.getBoundingClientRect();
@@ -454,6 +507,25 @@ export class TransformationGizmo {
 
       const isScale = this.handleType === "scale" || this.mode === "scale";
       const isRotate = this.handleType === "rotate" || this.mode === "rotate";
+
+      if (isScale) {
+        this.object.updateMatrixWorld(true);
+        this.object.getWorldPosition(this.scaleAxisOriginWorld);
+        this.scaleAxisWorld
+          .copy(this.getAxisVector())
+          .applyQuaternion(this.gizmoGroup.quaternion)
+          .normalize();
+        const startT = this.getAxisRayParameter(
+          this.raycaster.ray,
+          this.scaleAxisOriginWorld,
+          this.scaleAxisWorld
+        );
+        if (Number.isFinite(startT)) {
+          this.scaleAxisStartT = startT;
+          this.scaleAxisLastT = startT;
+        }
+        this.setScaleAxisScreenDir(camera, container);
+      }
 
       // Setup drag plane for rotation/scale
       // For scaling, use a plane perpendicular to camera view so mouse movement
@@ -525,6 +597,7 @@ export class TransformationGizmo {
         this.initialScale.copy(this.object.scale);
         this.startMouseScreenY = event.clientY;
         this.lastMouseScreenY = event.clientY;
+        this.lastMouseScreenX = event.clientX;
 
         // Get initial drag point
         this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
@@ -654,6 +727,43 @@ export class TransformationGizmo {
     return (b * f - c * e) / denom;
   }
 
+  setScaleAxisScreenDir(camera, container) {
+    if (!this.object || !camera || !container) {
+      this.scaleAxisScreenDir.set(0, 0);
+      return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const worldPos = new THREE.Vector3();
+    this.object.getWorldPosition(worldPos);
+
+    const axisWorld = this.getAxisVector()
+      .clone()
+      .applyQuaternion(this.gizmoGroup.quaternion)
+      .normalize();
+
+    const axisDistance = this.axisLength * this.gizmoGroup.scale.x;
+    const worldTip = worldPos.clone().add(axisWorld.multiplyScalar(axisDistance));
+
+    const screenOrigin = this.worldToScreen(worldPos, camera, rect);
+    const screenTip = this.worldToScreen(worldTip, camera, rect);
+
+    this.scaleAxisScreenDir.copy(screenTip).sub(screenOrigin);
+    if (this.scaleAxisScreenDir.lengthSq() < 1e-4) {
+      this.scaleAxisScreenDir.set(0, 0);
+      return;
+    }
+    this.scaleAxisScreenDir.normalize();
+  }
+
+  worldToScreen(worldPos, camera, rect) {
+    const ndc = worldPos.clone().project(camera);
+    return new THREE.Vector2(
+      (ndc.x + 1) * 0.5 * rect.width,
+      (1 - (ndc.y + 1) * 0.5) * rect.height
+    );
+  }
+
   // Apply rotation based on drag angle.
   handleRotate() {
     if (this.rotationStartVector.lengthSq() === 0) return;
@@ -681,21 +791,57 @@ export class TransformationGizmo {
 
   // Apply scaling along the selected axis.
   handleScale(event) {
-    // Use vertical mouse movement to compute a multiplicative scale factor.
-    // Use vertical mouse movement relative to the initial click to compute
-    // a stable multiplicative scale factor. Use an exponential mapping so
-    // scaling is smooth and symmetric and never flips sign.
-    const sensitivity = 0.005; // adjust to taste
-    const dy = this.startMouseScreenY - event.clientY;
-    const factor = Math.exp(dy * sensitivity);
+    // Use incremental movement along the axis ray intersection when possible,
+    // with screen-space projection as a fallback.
+    const axisDistance = this.axisLength * this.gizmoGroup.scale.x;
+    let factor = 1;
 
-    const scale = this.initialScale.clone();
-    if (this.axis === "x") {
-      scale.x = Math.max(0.01, this.initialScale.x * factor);
+    if (
+      this.scaleAxisWorld.lengthSq() > 0 &&
+      Number.isFinite(this.scaleAxisLastT) &&
+      axisDistance > 1e-6
+    ) {
+      const currentT = this.getAxisRayParameter(
+        this.raycaster.ray,
+        this.scaleAxisOriginWorld,
+        this.scaleAxisWorld
+      );
+      if (Number.isFinite(currentT)) {
+        const deltaT = currentT - this.scaleAxisLastT;
+        const normalized = deltaT / axisDistance;
+        const rawFactor = Math.exp(normalized * 1.0);
+        factor = Math.min(4, Math.max(0.25, rawFactor));
+        this.scaleAxisLastT = currentT;
+      }
+    }
+
+    if (factor === 1) {
+      // Screen-space fallback (keeps working when axis is nearly parallel to the view)
+      const sensitivity = 0.003;
+      const dx = event.clientX - this.lastMouseScreenX;
+      const dy = event.clientY - this.lastMouseScreenY;
+
+      let delta = -dy;
+      if (this.scaleAxisScreenDir.lengthSq() > 0) {
+        delta = dx * this.scaleAxisScreenDir.x + dy * this.scaleAxisScreenDir.y;
+      }
+
+      const rawFactor = Math.exp(delta * sensitivity);
+      factor = Math.min(4, Math.max(0.25, rawFactor));
+    }
+
+    const scale = this.object.scale.clone();
+    if (event.shiftKey) {
+      scale.multiplyScalar(factor);
+      scale.x = Math.max(0.01, scale.x);
+      scale.y = Math.max(0.01, scale.y);
+      scale.z = Math.max(0.01, scale.z);
+    } else if (this.axis === "x") {
+      scale.x = Math.max(0.01, scale.x * factor);
     } else if (this.axis === "y") {
-      scale.y = Math.max(0.01, this.initialScale.y * factor);
+      scale.y = Math.max(0.01, scale.y * factor);
     } else if (this.axis === "z") {
-      scale.z = Math.max(0.01, this.initialScale.z * factor);
+      scale.z = Math.max(0.01, scale.z * factor);
     } else {
       // Uniform scale if axis isn't specified
       scale.multiplyScalar(factor);
@@ -705,6 +851,8 @@ export class TransformationGizmo {
     }
 
     this.object.scale.copy(scale);
+    this.lastMouseScreenX = event.clientX;
+    this.lastMouseScreenY = event.clientY;
   }
 
   // Resolve the active axis vector.

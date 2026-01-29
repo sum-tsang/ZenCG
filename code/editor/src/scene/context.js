@@ -35,7 +35,8 @@ export function createSceneContext(canvas) {
 
 // Create a highlighted box helper for selection.
 function createSelectionHelper(scene) {
-  const helper = new THREE.BoxHelper(new THREE.Object3D(), 0xffc857);
+  const helper = new THREE.BoxHelper(new THREE.Object3D(), 0x7fefff);
+  helper.name = "SelectionOutline";
   helper.visible = false;
   helper.renderOrder = 1;
   const materials = Array.isArray(helper.material)
