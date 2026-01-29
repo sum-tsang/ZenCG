@@ -267,7 +267,11 @@ export class TransformationManager {
       }
     }
 
-    if (selectedObject && this.gizmo?.mode === "translate") {
+    // Only allow forcing a free-translate on the selected model when
+    // we're NOT currently editing a box selection. While a box selection
+    // is active we must prevent transforming the underlying model and
+    // only operate on the selection box itself.
+    if (!this.boxSelecting && selectedObject && this.gizmo?.mode === "translate") {
       // If click was on the bounding box rather than geometry, force free translate
       const force = selectedObject === this.selectedObject && intersects.length === 0;
       if (this.gizmo.onMouseDown(event, this.camera, this.canvas, force)) {
