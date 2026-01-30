@@ -140,8 +140,12 @@ export class TransformationManager {
     this.boxMesh.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(this.boxMesh);
 
+    // Use the selectableRoot (importRoot) as parent so new meshes appear in object list
+    // Fall back to the original mesh's parent if selectableRoot is not set
+    const targetParent = this.selectableRoot || this.selectedObject.parent || this.scene;
+
     // Perform split: extract faces whose centroids are inside box
-    const parts = splitMeshByBox(this.selectedObject, box, this.scene);
+    const parts = splitMeshByBox(this.selectedObject, box, targetParent);
 
     // Cleanup box
     this.scene.remove(this.boxMesh);
@@ -156,6 +160,8 @@ export class TransformationManager {
     if (parts && parts.inside) {
       // Ensure world matrices are current
       parts.inside.updateMatrixWorld(true);
+      if (parts.outside) parts.outside.updateMatrixWorld(true);
+      
       // Select the created inside component and update gizmo/panel
       this.selectObject(parts.inside);
       this.gizmo.setObject(parts.inside);
@@ -166,8 +172,10 @@ export class TransformationManager {
       this.recordSnapshot('split');
       this.logAction('split');
     } else {
+      // Split failed (all triangles on one side) - restore selection
       this.gizmo.setObject(this.selectedObject);
       this.panel.setObject(this.selectedObject);
+      alert('Split failed: make sure the selection box covers only part of the mesh.');
     }
 
     const btn = this.panel.container.querySelector('.split-btn');
