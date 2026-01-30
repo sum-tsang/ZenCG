@@ -23,6 +23,8 @@ export class TransformationManager {
     this.selectedObject = null;
     this.undoHistory = new UndoHistory();
     this.actionHistory = new ActionHistory();
+    this.initializedObjects = new WeakSet();
+    this.initialSnapshots = new WeakMap();
     this.wasDraggingGizmo = false;
     this.transformListeners = new Set();
     this.selectableRoot = options.selectableRoot ?? null;
@@ -357,12 +359,9 @@ export class TransformationManager {
     }
     if (selectionChanged) {
       if (object) {
-        this.resetUndoHistory();
-      } else {
-        this.undoHistory.clear();
-        this.actionHistory.clear();
-        this.panel.renderHistory([]);
+        this.cacheInitialSnapshot(object);
       }
+      this.panel.renderHistory(this.actionHistory.entries());
       if (this.onSelectionChange) {
         this.onSelectionChange(object);
       }
@@ -383,15 +382,26 @@ export class TransformationManager {
 
   // Reset undo history to the current object transform.
   resetUndoHistory() {
+    if (!this.selectedObject) return;
     this.undoHistory.clear();
     this.actionHistory.clear();
     this.panel.renderHistory([]);
     this.recordSnapshot();
+    this.initializedObjects.add(this.selectedObject);
+    this.initialSnapshots.delete(this.selectedObject);
   }
 
   // Record a transform snapshot for undo/history.
   recordSnapshot(action) {
     if (!this.selectedObject) return;
+    if (!this.initializedObjects.has(this.selectedObject)) {
+      const initial = this.initialSnapshots.get(this.selectedObject);
+      if (initial) {
+        this.undoHistory.record(initial);
+      }
+      this.initializedObjects.add(this.selectedObject);
+      this.initialSnapshots.delete(this.selectedObject);
+    }
     const snapshot = createTransformSnapshot(this.selectedObject);
     const recorded = this.undoHistory.record(snapshot);
     if (recorded && action) {
@@ -403,8 +413,10 @@ export class TransformationManager {
   undo() {
     const snapshot = this.undoHistory.undo();
     if (!snapshot) return false;
-    if (snapshot.object !== this.selectedObject) return false;
-    applyTransformSnapshot(snapshot);
+    if (!applyTransformSnapshot(snapshot)) return false;
+    if (snapshot.object !== this.selectedObject) {
+      this.selectObject(snapshot.object);
+    }
     this.gizmo.updateGizmoPosition();
     this.panel.updatePanelFromObject();
     this.logAction("undo");
@@ -467,5 +479,15 @@ export class TransformationManager {
     this.transformListeners.forEach((callback) => {
       callback(transform);
     });
+  }
+
+  // Cache the initial state for a selected object before its first change.
+  cacheInitialSnapshot(object) {
+    if (!object || this.initializedObjects.has(object)) return;
+    if (this.initialSnapshots.has(object)) return;
+    const snapshot = createTransformSnapshot(object);
+    if (snapshot) {
+      this.initialSnapshots.set(object, snapshot);
+    }
   }
 }
