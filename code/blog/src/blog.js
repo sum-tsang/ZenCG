@@ -42,7 +42,7 @@ function formatInline(text) {
 function renderMarkdown(markdown) {
   const lines = markdown.split(/\r?\n/);
   let html = "";
-  let inList = false;
+  let listType = null;
   let inCode = false;
   let paragraph = [];
 
@@ -58,9 +58,9 @@ function renderMarkdown(markdown) {
 
   // Close an open list if needed.
   const closeList = () => {
-    if (inList) {
-      html += "</ul>";
-      inList = false;
+    if (listType) {
+      html += `</${listType}>`;
+      listType = null;
     }
   };
 
@@ -113,18 +113,36 @@ function renderMarkdown(markdown) {
       return;
     }
 
-    const listMatch = line.match(/^[-*]\s+(.*)$/);
-    if (listMatch) {
+    const unorderedMatch = line.match(/^[-*]\s+(.*)$/);
+    if (unorderedMatch) {
       flushParagraph();
-      if (!inList) {
+      if (listType !== "ul") {
+        closeList();
         html += "<ul>";
-        inList = true;
+        listType = "ul";
       }
-      const text = formatInline(escapeHtml(listMatch[1]));
+      const text = formatInline(escapeHtml(unorderedMatch[1]));
       html += `<li>${text}</li>`;
       return;
     }
 
+    const orderedMatch = line.match(/^(\d+)[.)]\s+(.*)$/);
+    if (orderedMatch) {
+      flushParagraph();
+      if (listType !== "ol") {
+        closeList();
+        html += "<ol>";
+        listType = "ol";
+      }
+      const number = orderedMatch[1];
+      const text = formatInline(escapeHtml(orderedMatch[2]));
+      html += `<li value="${number}">${text}</li>`;
+      return;
+    }
+
+    if (listType) {
+      closeList();
+    }
     paragraph.push(line.trim());
   });
 
