@@ -48,6 +48,8 @@ export class TransformationGizmo {
     this.scaleAxisStartT = 0;
     this.scaleAxisLastT = 0;
     this.scaleAxisScreenDir = new THREE.Vector2();
+    this.asymmetricScale = false; // When true, scale only in the drag direction (one-sided)
+    this.scaleDirection = 1; // 1 for positive axis, -1 for negative
     this.camera = null;
     this.viewport = null;
     this.axisLength = 6;
@@ -154,7 +156,7 @@ export class TransformationGizmo {
 
       this.gizmoGroup.add(cylinder);
 
-      // Scale handle (box) for scale mode.
+      // Scale handle (box) for scale mode - positive direction
       const scaleGeom = new THREE.BoxGeometry(0.75, 0.75, 0.75);
       const scaleMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8 });
       const scaleHandle = new THREE.Mesh(scaleGeom, scaleMat);
@@ -162,10 +164,25 @@ export class TransformationGizmo {
       scaleHandle.userData.axis = axis;
       scaleHandle.userData.isGizmoAxis = true;
       scaleHandle.userData.handleType = "scale";
+      scaleHandle.userData.scaleDirection = 1; // Positive direction
       scaleHandle.userData.baseOpacity = 0.8;
       scaleHandle.renderOrder = 2;
       scaleHandle.material.depthTest = false;
       this.gizmoGroup.add(scaleHandle);
+
+      // Scale handle (box) for scale mode - negative direction
+      const scaleGeomNeg = new THREE.BoxGeometry(0.75, 0.75, 0.75);
+      const scaleMatNeg = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8 });
+      const scaleHandleNeg = new THREE.Mesh(scaleGeomNeg, scaleMatNeg);
+      scaleHandleNeg.position.copy(direction).multiplyScalar(-(axisLength + 0.7));
+      scaleHandleNeg.userData.axis = axis;
+      scaleHandleNeg.userData.isGizmoAxis = true;
+      scaleHandleNeg.userData.handleType = "scale";
+      scaleHandleNeg.userData.scaleDirection = -1; // Negative direction
+      scaleHandleNeg.userData.baseOpacity = 0.8;
+      scaleHandleNeg.renderOrder = 2;
+      scaleHandleNeg.material.depthTest = false;
+      this.gizmoGroup.add(scaleHandleNeg);
     });
 
     // Add rotation rings for rotate mode.
@@ -399,15 +416,17 @@ export class TransformationGizmo {
     let axis = null;
     let handleType = null;
     let isHitZone = false;
+    let scaleDirection = 1; // Default to positive direction
 
     while (current) {
       if (axis === null && current.userData?.axis) axis = current.userData.axis;
       if (handleType === null && current.userData?.handleType) handleType = current.userData.handleType;
+      if (current.userData?.scaleDirection !== undefined) scaleDirection = current.userData.scaleDirection;
       if (current.userData?.isHitZone) isHitZone = true;
       current = current.parent;
     }
 
-    return { axis, handleType, isHitZone };
+    return { axis, handleType, isHitZone, scaleDirection };
   }
 
   // Begin drag interactions when a handle is clicked.
@@ -525,6 +544,10 @@ export class TransformationGizmo {
           this.scaleAxisLastT = startT;
         }
         this.setScaleAxisScreenDir(camera, container);
+        
+        // For asymmetric scaling, use the direction from the clicked handle
+        // resolved.scaleDirection is 1 for positive axis handles, -1 for negative
+        this.scaleDirection = resolved.scaleDirection || 1;
       }
 
       // Setup drag plane for rotation/scale
@@ -831,6 +854,7 @@ export class TransformationGizmo {
     }
 
     const scale = this.object.scale.clone();
+    
     if (event.shiftKey) {
       scale.multiplyScalar(factor);
       scale.x = Math.max(0.01, scale.x);
@@ -851,6 +875,7 @@ export class TransformationGizmo {
     }
 
     this.object.scale.copy(scale);
+
     this.lastMouseScreenX = event.clientX;
     this.lastMouseScreenY = event.clientY;
   }

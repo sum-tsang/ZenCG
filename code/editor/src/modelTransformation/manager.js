@@ -74,6 +74,11 @@ export class TransformationManager {
       }
     });
 
+    // Wire cancel button from panel
+    this.panel.onCancelSplit(() => {
+      this.cancelBoxSelection();
+    });
+
     // Mouse event handlers
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
@@ -113,6 +118,9 @@ export class TransformationManager {
     const boxMesh = new THREE.Mesh(geom, mat);
     boxMesh.name = "SelectionBox";
     boxMesh.position.copy(center);
+    // Store the current box bounds for asymmetric resizing
+    boxMesh.userData.boxMin = center.clone().sub(size.clone().multiplyScalar(0.5));
+    boxMesh.userData.boxMax = center.clone().add(size.clone().multiplyScalar(0.5));
     // Attach to scene root so world transforms are simple
     this.scene.add(boxMesh);
 
@@ -120,25 +128,136 @@ export class TransformationManager {
     const helper = new THREE.BoxHelper(boxMesh, 0xffdd00);
     this.scene.add(helper);
 
+    // Create drag handles for asymmetric resizing (6 faces)
+    this.boxHandles = this.createBoxHandles(boxMesh);
+
     this.boxMesh = boxMesh;
     this.boxHelper = helper;
     this.boxSelecting = true;
 
-    // Switch gizmo to operate on the box
-    this.gizmo.setObject(this.boxMesh);
-    this.gizmo.show();
+    // Hide the regular gizmo during box selection
+    this.gizmo.hide();
 
-    // Update panel button label if possible
+    // Hide mode buttons and show only split controls
+    const modeButtons = this.panel.container.querySelector('.mode-buttons');
+    if (modeButtons) modeButtons.style.display = 'none';
+
+    // Update panel buttons for box selection mode
     const btn = this.panel.container.querySelector('.split-btn');
+    const cancelBtn = this.panel.container.querySelector('.cancel-split-btn');
     if (btn) btn.textContent = 'Confirm Component';
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+  }
+
+  // Create 6 drag handles for the selection box faces
+  createBoxHandles(boxMesh) {
+    const handles = [];
+    const handleSize = 0.4;
+    const handleGeom = new THREE.BoxGeometry(handleSize, handleSize, handleSize);
+    
+    // Define the 6 faces: +X, -X, +Y, -Y, +Z, -Z
+    const faces = [
+      { axis: 'x', dir: 1, color: 0xff4444 },   // +X (red)
+      { axis: 'x', dir: -1, color: 0xff4444 },  // -X (red)
+      { axis: 'y', dir: 1, color: 0x44ff44 },   // +Y (green)
+      { axis: 'y', dir: -1, color: 0x44ff44 },  // -Y (green)
+      { axis: 'z', dir: 1, color: 0x4444ff },   // +Z (blue)
+      { axis: 'z', dir: -1, color: 0x4444ff },  // -Z (blue)
+    ];
+
+    faces.forEach(face => {
+      const handleMat = new THREE.MeshBasicMaterial({ 
+        color: face.color, 
+        transparent: true, 
+        opacity: 0.9,
+        depthTest: false 
+      });
+      const handle = new THREE.Mesh(handleGeom.clone(), handleMat);
+      handle.name = `BoxHandle_${face.axis}_${face.dir > 0 ? 'pos' : 'neg'}`;
+      handle.userData.axis = face.axis;
+      handle.userData.direction = face.dir;
+      handle.userData.isBoxHandle = true;
+      handle.renderOrder = 1000;
+      this.scene.add(handle);
+      handles.push(handle);
+    });
+
+    this.updateBoxHandlePositions(boxMesh, handles);
+    return handles;
+  }
+
+  // Update handle positions based on box bounds
+  updateBoxHandlePositions(boxMesh, handles) {
+    if (!boxMesh || !handles) return;
+    
+    const min = boxMesh.userData.boxMin;
+    const max = boxMesh.userData.boxMax;
+    const center = new THREE.Vector3().addVectors(min, max).multiplyScalar(0.5);
+
+    handles.forEach(handle => {
+      const axis = handle.userData.axis;
+      const dir = handle.userData.direction;
+      const pos = center.clone();
+      
+      if (axis === 'x') {
+        pos.x = dir > 0 ? max.x : min.x;
+      } else if (axis === 'y') {
+        pos.y = dir > 0 ? max.y : min.y;
+      } else if (axis === 'z') {
+        pos.z = dir > 0 ? max.z : min.z;
+      }
+      
+      handle.position.copy(pos);
+    });
+  }
+
+  // Rebuild the box mesh geometry based on current bounds
+  rebuildBoxMesh() {
+    if (!this.boxMesh) return;
+    
+    const min = this.boxMesh.userData.boxMin;
+    const max = this.boxMesh.userData.boxMax;
+    const size = new THREE.Vector3().subVectors(max, min);
+    const center = new THREE.Vector3().addVectors(min, max).multiplyScalar(0.5);
+    
+    // Dispose old geometry and create new one
+    this.boxMesh.geometry.dispose();
+    this.boxMesh.geometry = new THREE.BoxGeometry(
+      Math.max(0.01, size.x),
+      Math.max(0.01, size.y),
+      Math.max(0.01, size.z)
+    );
+    this.boxMesh.position.copy(center);
+    
+    // Update the outline helper
+    if (this.boxHelper) {
+      this.boxHelper.update();
+    }
+    
+    // Update handle positions
+    this.updateBoxHandlePositions(this.boxMesh, this.boxHandles);
+  }
+
+  // Clean up box handles
+  removeBoxHandles() {
+    if (this.boxHandles) {
+      this.boxHandles.forEach(handle => {
+        this.scene.remove(handle);
+        handle.geometry.dispose();
+        handle.material.dispose();
+      });
+      this.boxHandles = null;
+    }
   }
 
   // Confirm box selection and split the mesh.
   confirmBoxSelection() {
     if (!this.boxMesh || !this.selectedObject) return;
-    // Compute box bounds in world space
-    this.boxMesh.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(this.boxMesh);
+    // Compute box bounds from stored min/max (more accurate than geometry)
+    const box = new THREE.Box3(
+      this.boxMesh.userData.boxMin.clone(),
+      this.boxMesh.userData.boxMax.clone()
+    );
 
     // Use the selectableRoot (importRoot) as parent so new meshes appear in object list
     // Fall back to the original mesh's parent if selectableRoot is not set
@@ -147,7 +266,8 @@ export class TransformationManager {
     // Perform split: extract faces whose centroids are inside box
     const parts = splitMeshByBox(this.selectedObject, box, targetParent);
 
-    // Cleanup box
+    // Cleanup box and handles
+    this.removeBoxHandles();
     this.scene.remove(this.boxMesh);
     if (this.boxHelper) this.scene.remove(this.boxHelper);
     this.boxMesh.geometry.dispose();
@@ -174,17 +294,26 @@ export class TransformationManager {
     } else {
       // Split failed (all triangles on one side) - restore selection
       this.gizmo.setObject(this.selectedObject);
+      this.gizmo.show();
       this.panel.setObject(this.selectedObject);
       alert('Split failed: make sure the selection box covers only part of the mesh.');
     }
 
     const btn = this.panel.container.querySelector('.split-btn');
+    const cancelBtn = this.panel.container.querySelector('.cancel-split-btn');
+    const modeButtons = this.panel.container.querySelector('.mode-buttons');
     if (btn) btn.textContent = 'Create Component (click mesh)';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (modeButtons) modeButtons.style.display = '';
   }
 
   // Cancel box selection and restore gizmo state.
   cancelBoxSelection() {
     if (!this.boxSelecting) return;
+    
+    // Clean up handles
+    this.removeBoxHandles();
+    
     if (this.boxMesh) {
       this.scene.remove(this.boxMesh);
       this.boxMesh.geometry.dispose();
@@ -196,11 +325,17 @@ export class TransformationManager {
       this.boxHelper = null;
     }
     this.boxSelecting = false;
-    const btn = this.panel.container.querySelector('.split-btn');
-    if (btn) btn.textContent = 'Create Component (click mesh)';
+    
+    const btn2 = this.panel.container.querySelector('.split-btn');
+    const cancelBtn2 = this.panel.container.querySelector('.cancel-split-btn');
+    const modeButtons2 = this.panel.container.querySelector('.mode-buttons');
+    if (btn2) btn2.textContent = 'Create Component (click mesh)';
+    if (cancelBtn2) cancelBtn2.style.display = 'none';
+    if (modeButtons2) modeButtons2.style.display = '';
     // Restore gizmo target
     if (this.selectedObject) {
       this.gizmo.setObject(this.selectedObject);
+      this.gizmo.show();
     } else {
       this.gizmo.hide();
     }
@@ -216,6 +351,37 @@ export class TransformationManager {
     if (event.button === 2) {
       // Prevent browser default (context menu) on right-click action
       event.preventDefault();
+    }
+
+    // During box selection mode, handle custom box handle dragging
+    if (this.boxSelecting) {
+      const rect = this.canvas.getBoundingClientRect();
+      this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      
+      // Check if we hit a box handle
+      if (this.boxHandles && this.boxHandles.length > 0) {
+        const handleHits = this.raycaster.intersectObjects(this.boxHandles);
+        if (handleHits.length > 0) {
+          const hitHandle = handleHits[0].object;
+          this.draggingBoxHandle = hitHandle;
+          this.boxHandleDragStart = handleHits[0].point.clone();
+          this.boxHandleLastPoint = handleHits[0].point.clone();
+          
+          // Create a drag plane perpendicular to camera but containing the hit point
+          const cameraDir = new THREE.Vector3();
+          this.camera.getWorldDirection(cameraDir);
+          this.boxHandleDragPlane = new THREE.Plane();
+          this.boxHandleDragPlane.setFromNormalAndCoplanarPoint(cameraDir, handleHits[0].point);
+          
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+      }
+      
+      return; // Block all other interactions during box selection
     }
 
     // Build selection ray first so we can prioritize real model hits over gizmo hit zones.
@@ -326,6 +492,51 @@ export class TransformationManager {
   onMouseMove(event) {
     if (!this.camera) return;
 
+    // Handle box handle dragging (asymmetric resize)
+    if (this.draggingBoxHandle && this.boxMesh && this.boxHandleDragPlane) {
+      const rect = this.canvas.getBoundingClientRect();
+      this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      
+      const intersectPoint = new THREE.Vector3();
+      if (this.raycaster.ray.intersectPlane(this.boxHandleDragPlane, intersectPoint)) {
+        const axis = this.draggingBoxHandle.userData.axis;
+        const dir = this.draggingBoxHandle.userData.direction;
+        
+        // Calculate movement along the handle's axis
+        const delta = intersectPoint.clone().sub(this.boxHandleLastPoint);
+        let axisDelta = 0;
+        if (axis === 'x') axisDelta = delta.x;
+        else if (axis === 'y') axisDelta = delta.y;
+        else if (axis === 'z') axisDelta = delta.z;
+        
+        // Update the appropriate bound (min or max) based on direction
+        if (dir > 0) {
+          // Moving the max bound
+          if (axis === 'x') this.boxMesh.userData.boxMax.x += axisDelta;
+          else if (axis === 'y') this.boxMesh.userData.boxMax.y += axisDelta;
+          else if (axis === 'z') this.boxMesh.userData.boxMax.z += axisDelta;
+        } else {
+          // Moving the min bound
+          if (axis === 'x') this.boxMesh.userData.boxMin.x += axisDelta;
+          else if (axis === 'y') this.boxMesh.userData.boxMin.y += axisDelta;
+          else if (axis === 'z') this.boxMesh.userData.boxMin.z += axisDelta;
+        }
+        
+        // Ensure min < max (prevent inverted box)
+        const min = this.boxMesh.userData.boxMin;
+        const max = this.boxMesh.userData.boxMax;
+        if (min.x > max.x) { const t = min.x; min.x = max.x; max.x = t; }
+        if (min.y > max.y) { const t = min.y; min.y = max.y; max.y = t; }
+        if (min.z > max.z) { const t = min.z; min.z = max.z; max.z = t; }
+        
+        this.rebuildBoxMesh();
+        this.boxHandleLastPoint.copy(intersectPoint);
+      }
+      return;
+    }
+
     // If the gizmo is currently dragging, forward movement to the gizmo handler.
     if (this.gizmo.isDragging) {
       this.gizmo.onMouseMove(event, this.camera, this.canvas);
@@ -339,6 +550,13 @@ export class TransformationManager {
 
   // Handle pointer up events for drag completion.
   onMouseUp(event) {
+    // End box handle dragging
+    if (this.draggingBoxHandle) {
+      this.draggingBoxHandle = null;
+      this.boxHandleDragPlane = null;
+      return;
+    }
+    
     this.gizmo.onMouseUp();
     if (this.wasDraggingGizmo) {
       this.recordSnapshot(this.gizmo.mode);

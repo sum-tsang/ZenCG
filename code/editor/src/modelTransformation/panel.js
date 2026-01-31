@@ -28,6 +28,7 @@ export class TransformationPanel {
     this.listeners = {
       onTransform: null,
       onSplitRequest: null,
+      onCancelSplit: null,
     };
 
     this.initializeUI();
@@ -74,9 +75,21 @@ export class TransformationPanel {
     splitBtn.textContent = "Create Component (click mesh)";
     splitBtn.className = "split-btn";
     splitRow.appendChild(splitBtn);
+    
+    // Cancel button (hidden by default, shown during box selection)
+    const cancelBtn = document.createElement("button");
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.className = "cancel-split-btn";
+    cancelBtn.style.display = "none";
+    cancelBtn.style.marginLeft = "8px";
+    splitRow.appendChild(cancelBtn);
+    
     panel.appendChild(splitRow);
     splitBtn.addEventListener("click", () => {
       if (this.listeners.onSplitRequest) this.listeners.onSplitRequest();
+    });
+    cancelBtn.addEventListener("click", () => {
+      if (this.listeners.onCancelSplit) this.listeners.onCancelSplit();
     });
 
     // Position section
@@ -293,6 +306,11 @@ export class TransformationPanel {
   // Register a split request callback.
   onSplit(callback) {
     this.listeners.onSplitRequest = callback;
+  }
+
+  // Register a cancel split callback.
+  onCancelSplit(callback) {
+    this.listeners.onCancelSplit = callback;
   }
 
   // Refresh input values from the bound object.
