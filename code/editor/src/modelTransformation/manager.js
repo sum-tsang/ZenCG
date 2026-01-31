@@ -345,16 +345,11 @@ export class TransformationManager {
   onMouseDown(event) {
     if (!this.camera) return;
 
-    // Allow left-click (0) and right-click (2) for selection/gizmo.
-    if (event.button !== 0 && event.button !== 2) return;
-
-    if (event.button === 2) {
-      // Prevent browser default (context menu) on right-click action
-      event.preventDefault();
-    }
-
-    // During box selection mode, handle custom box handle dragging
+    // During box selection mode, only right-click (2) can drag handles
     if (this.boxSelecting) {
+      if (event.button !== 2) return; // Only right-click for box handle dragging
+      event.preventDefault(); // Prevent context menu
+      
       const rect = this.canvas.getBoundingClientRect();
       this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -375,7 +370,6 @@ export class TransformationManager {
           this.boxHandleDragPlane = new THREE.Plane();
           this.boxHandleDragPlane.setFromNormalAndCoplanarPoint(cameraDir, handleHits[0].point);
           
-          event.preventDefault();
           event.stopImmediatePropagation();
           return;
         }
@@ -383,6 +377,10 @@ export class TransformationManager {
       
       return; // Block all other interactions during box selection
     }
+
+    // Only right-click (2) for all transform/selection interactions
+    if (event.button !== 2) return;
+    event.preventDefault(); // Prevent context menu
 
     // Build selection ray first so we can prioritize real model hits over gizmo hit zones.
     this.wasDraggingGizmo = false;

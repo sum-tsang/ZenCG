@@ -431,7 +431,8 @@ export class TransformationGizmo {
 
   // Begin drag interactions when a handle is clicked.
   onMouseDown(event, camera, container, forceFreeTranslate = false) {
-    if (event.button !== 0 && event.button !== 2) return false;
+    // Only right-click (2) for all transform interactions
+    if (event.button !== 2) return false;
 
     if (!this.object) return;
 
@@ -635,12 +636,8 @@ export class TransformationGizmo {
   onMouseMove(event, camera, container) {
     if (!this.isDragging || !this.object || !this.axis) return;
     if (event.buttons !== undefined) {
-      const leftDown = (event.buttons & 1) !== 0;
       const rightDown = (event.buttons & 2) !== 0;
-      if (
-        (this.dragButton === 0 && !leftDown) ||
-        (this.dragButton === 2 && !rightDown)
-      ) {
+      if (!rightDown) {
         this.onMouseUp();
         return;
       }
