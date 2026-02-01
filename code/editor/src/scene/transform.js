@@ -1,3 +1,5 @@
+import { materialEditor } from "../modelMaterial/materialEditor.js";
+
 // Serialize an object's transform to plain arrays.
 export function serializeTransform(object) {
   return {
@@ -28,4 +30,13 @@ export function updateStoredTransform(object, state) {
   const entry = state.storedImports[index];
   if (!entry) return;
   entry.transform = serializeTransform(object);
+}
+
+// Update the saved material for an object in state.
+export function updateStoredMaterial(object, state) {
+  const index = state.importedObjects.indexOf(object);
+  if (index === -1) return;
+  const entry = state.storedImports[index];
+  if (!entry) return;
+  entry.material = materialEditor.serializeMaterial(object);
 }

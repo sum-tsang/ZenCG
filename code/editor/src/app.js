@@ -8,7 +8,7 @@ import { findImportedRoot, updateSelectionOutline } from "./scene/selection.js";
 import { placeImportedObject } from "./scene/placement.js";
 import { renderObjectList as renderObjectListView } from "./scene/listView.js";
 import { disposeObject } from "./scene/dispose.js";
-import { applyTransform, updateStoredTransform } from "./scene/transform.js";
+import { applyTransform, updateStoredTransform, updateStoredMaterial } from "./scene/transform.js";
 import { createDeleteImportedObject } from "./scene/delete.js";
 import { attachCameraControls } from "./camera/cameraSettings.js";
 import { createEnvironmentGizmo } from "./scene/environmentGizmo.js";
@@ -85,6 +85,15 @@ function init() {
 
   // Initialize material panel
   materialPanel = new MaterialPanel("material-panel-container");
+
+  // Wire up material changes to trigger saves
+  materialPanel.onMaterialChange(({ object }) => {
+    if (!object) return;
+    store.mutate((state) => {
+      updateStoredMaterial(object, state);
+    });
+    scheduleSave();
+  });
 
   transformationManager = setupTransformTools({
     scene,

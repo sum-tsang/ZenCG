@@ -421,6 +421,104 @@ export class MaterialEditor {
       }
     });
   }
+
+  /**
+   * Serialize material data for persistence
+   * @param {THREE.Object3D} object - The object to serialize materials from
+   * @returns {Object|null} Serialized material data
+   */
+  serializeMaterial(object) {
+    if (!object) return null;
+
+    const materials = this.getMaterials(object);
+    if (materials.length === 0) return null;
+
+    const mat = materials[0];
+    const data = {
+      color: mat.color ? "#" + mat.color.getHexString() : "#ffffff",
+      roughness: mat.roughness ?? 0.7,
+      metalness: mat.metalness ?? 0.0,
+      textureDataUrl: null,
+    };
+
+    // Extract texture data URL if present
+    if (mat.map && mat.map.image) {
+      try {
+        const canvas = document.createElement("canvas");
+        const img = mat.map.image;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        data.textureDataUrl = canvas.toDataURL("image/png");
+      } catch (e) {
+        console.warn("Could not serialize texture:", e);
+      }
+    }
+
+    return data;
+  }
+
+  /**
+   * Apply serialized material data to an object
+   * @param {Object} materialData - Serialized material data
+   * @param {THREE.Object3D} object - The object to apply materials to
+   * @returns {Promise<void>}
+   */
+  async applySerializedMaterial(materialData, object) {
+    if (!materialData || !object) return;
+
+    // Apply color
+    if (materialData.color) {
+      this.setBaseColor(materialData.color, object);
+    }
+
+    // Apply roughness and metalness
+    if (typeof materialData.roughness === "number") {
+      this.setRoughness(materialData.roughness, object);
+    }
+    if (typeof materialData.metalness === "number") {
+      this.setMetalness(materialData.metalness, object);
+    }
+
+    // Apply texture if present
+    if (materialData.textureDataUrl) {
+      try {
+        await this.applyTextureFromDataUrl(materialData.textureDataUrl, "map", object);
+      } catch (e) {
+        console.warn("Could not restore texture:", e);
+      }
+    }
+  }
+
+  /**
+   * Apply a texture from a data URL
+   * @param {string} dataUrl - The data URL of the texture image
+   * @param {string} textureType - Type of texture ('map', 'normalMap', etc.)
+   * @param {THREE.Object3D} object - The object to modify
+   * @returns {Promise<THREE.Texture>}
+   */
+  applyTextureFromDataUrl(dataUrl, textureType = "map", object = this.currentObject) {
+    if (!object || !dataUrl) return Promise.resolve(null);
+
+    return new Promise((resolve, reject) => {
+      this.textureLoader.load(
+        dataUrl,
+        (texture) => {
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.wrapT = THREE.RepeatWrapping;
+          texture.colorSpace = textureType === "map" ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace;
+          this.applyTexture(texture, textureType, object);
+          resolve(texture);
+        },
+        undefined,
+        (error) => {
+          console.error("Error loading texture from data URL:", error);
+          reject(error);
+        }
+      );
+    });
+  }
 }
 
 // Singleton instance

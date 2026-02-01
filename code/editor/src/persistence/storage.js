@@ -24,6 +24,7 @@ export function saveStoredImports(config, storedImports) {
     name: entry.name,
     text: entry.text,
     transform: entry.transform ?? null,
+    material: entry.material ?? null,
   }));
 
   openDb(config)

@@ -7,5 +7,6 @@ export function createInitialState() {
     nextOffsetX: 0,
     isRestoring: false,
     pendingTransforms: [],
+    pendingMaterials: [],
   };
 }
