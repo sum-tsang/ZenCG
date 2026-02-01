@@ -32,6 +32,8 @@ export class TransformationManager {
       typeof options.resolveSelection === "function" ? options.resolveSelection : null;
     this.onSelectionChange =
       typeof options.onSelectionChange === "function" ? options.onSelectionChange : null;
+    this.onSplit =
+      typeof options.onSplit === "function" ? options.onSplit : null;
 
     // Initialize gizmo and panel
     this.gizmo = new TransformationGizmo(scene);
@@ -283,6 +285,15 @@ export class TransformationManager {
       // Ensure world matrices are current
       parts.inside.updateMatrixWorld(true);
       if (parts.outside) parts.outside.updateMatrixWorld(true);
+      
+      // Notify listeners about the split (for updating object list, etc.)
+      if (this.onSplit) {
+        this.onSplit({
+          original: this.selectedObject,
+          inside: parts.inside,
+          outside: parts.outside,
+        });
+      }
       
       // Select the created inside component and update gizmo/panel
       this.selectObject(parts.inside);
