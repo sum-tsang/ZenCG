@@ -36,6 +36,88 @@ export class MaterialEditor {
   }
 
   /**
+   * Generate UV coordinates for a mesh using box projection
+   * This is needed for meshes that don't have UV coordinates
+   * @param {THREE.Mesh} mesh - The mesh to generate UVs for
+   */
+  generateBoxProjectionUVs(mesh) {
+    const geometry = mesh.geometry;
+    if (!geometry) return;
+
+    // Check if UVs already exist and are valid
+    const existingUV = geometry.attributes.uv;
+    if (existingUV && existingUV.count > 0) {
+      // Check if UVs are actually defined (not all zeros or NaN)
+      let hasValidUVs = false;
+      for (let i = 0; i < Math.min(existingUV.count, 10); i++) {
+        const u = existingUV.getX(i);
+        const v = existingUV.getY(i);
+        if (!isNaN(u) && !isNaN(v) && (u !== 0 || v !== 0)) {
+          hasValidUVs = true;
+          break;
+        }
+      }
+      if (hasValidUVs) return; // UVs exist and are valid
+    }
+
+    // Need to generate UVs using box projection
+    geometry.computeBoundingBox();
+    const bbox = geometry.boundingBox;
+    const size = new THREE.Vector3();
+    bbox.getSize(size);
+
+    // Prevent division by zero
+    if (size.x === 0) size.x = 1;
+    if (size.y === 0) size.y = 1;
+    if (size.z === 0) size.z = 1;
+
+    const position = geometry.attributes.position;
+    const normal = geometry.attributes.normal;
+    const uvArray = new Float32Array(position.count * 2);
+
+    const tempPos = new THREE.Vector3();
+    const tempNormal = new THREE.Vector3();
+
+    for (let i = 0; i < position.count; i++) {
+      tempPos.fromBufferAttribute(position, i);
+      
+      // Get normal if available, otherwise use position direction
+      if (normal) {
+        tempNormal.fromBufferAttribute(normal, i);
+      } else {
+        tempNormal.copy(tempPos).normalize();
+      }
+
+      // Determine which axis the normal faces most
+      const absX = Math.abs(tempNormal.x);
+      const absY = Math.abs(tempNormal.y);
+      const absZ = Math.abs(tempNormal.z);
+
+      let u, v;
+
+      if (absX >= absY && absX >= absZ) {
+        // Project from X axis
+        u = (tempPos.z - bbox.min.z) / size.z;
+        v = (tempPos.y - bbox.min.y) / size.y;
+      } else if (absY >= absX && absY >= absZ) {
+        // Project from Y axis
+        u = (tempPos.x - bbox.min.x) / size.x;
+        v = (tempPos.z - bbox.min.z) / size.z;
+      } else {
+        // Project from Z axis
+        u = (tempPos.x - bbox.min.x) / size.x;
+        v = (tempPos.y - bbox.min.y) / size.y;
+      }
+
+      uvArray[i * 2] = u;
+      uvArray[i * 2 + 1] = v;
+    }
+
+    geometry.setAttribute('uv', new THREE.BufferAttribute(uvArray, 2));
+    geometry.attributes.uv.needsUpdate = true;
+  }
+
+  /**
    * Get all materials from an object (including children)
    * @param {THREE.Object3D} object - The object to get materials from
    * @returns {THREE.Material[]} Array of unique materials
@@ -176,6 +258,9 @@ export class MaterialEditor {
 
     object.traverse((child) => {
       if (child.isMesh && child.material) {
+        // Generate UVs if the mesh doesn't have them
+        this.generateBoxProjectionUVs(child);
+        
         // Clone materials if shared to avoid affecting other objects
         if (Array.isArray(child.material)) {
           child.material = child.material.map((mat) => this.ensureUniqueMaterial(mat));
