@@ -1,4 +1,5 @@
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 import { setupObjExport } from "./export.js";
 
 // Wire up OBJ file input handling and parsing.
@@ -14,14 +15,18 @@ export function setupObjImport({
     throw new Error("OBJ input not found.");
   }
 
-  const loader = new OBJLoader();
+  const objLoader = new OBJLoader();
+  const mtlLoader = new MTLLoader();
 
   // Parse an OBJ string and add it to the scene.
-  function loadObjFromText(text, filename) {
+  function loadObjFromText(text, filename, materials = null) {
     let object;
 
     try {
-      object = loader.parse(text);
+      if (materials) {
+        objLoader.setMaterials(materials);
+      }
+      object = objLoader.parse(text);
     } catch (error) {
       console.error(error);
       setStatus?.("Failed to parse OBJ file.");
@@ -33,7 +38,23 @@ export function setupObjImport({
     onObjectLoaded?.(object);
     frameObject?.(object);
     onTextLoaded?.(text, filename);
-    setStatus?.(`Loaded ${filename}`);
+    setStatus?.(`Loaded ${filename}${materials ? " with materials" : ""}`);
+    
+    return object;
+  }
+
+  // Parse MTL text and return materials
+  function loadMtlFromText(text, basePath = "") {
+    try {
+      // Set resource path for textures referenced in MTL
+      mtlLoader.setResourcePath(basePath);
+      const materials = mtlLoader.parse(text);
+      materials.preload();
+      return materials;
+    } catch (error) {
+      console.error("Failed to parse MTL file:", error);
+      return null;
+    }
   }
 
   // Read a File as text.
@@ -58,15 +79,26 @@ export function setupObjImport({
     });
   }
 
-  // Handle a batch of selected files.
+  // Handle a batch of selected files (OBJ and optionally MTL).
   async function handleFiles(files) {
     if (!files || files.length === 0) {
       return;
     }
 
-    const objFiles = Array.from(files).filter((file) =>
+    const fileArray = Array.from(files);
+    const objFiles = fileArray.filter((file) =>
       file.name.toLowerCase().endsWith(".obj")
     );
+    const mtlFiles = fileArray.filter((file) =>
+      file.name.toLowerCase().endsWith(".mtl")
+    );
+
+    // Build a map of MTL files by base name for matching
+    const mtlMap = new Map();
+    for (const mtlFile of mtlFiles) {
+      const baseName = mtlFile.name.replace(/\.mtl$/i, "");
+      mtlMap.set(baseName.toLowerCase(), mtlFile);
+    }
 
     if (objFiles.length === 0) {
       setStatus?.("Please select a .obj file.");
@@ -78,13 +110,31 @@ export function setupObjImport({
       objFiles.length === 1 ? "Loading OBJ..." : `Loading ${objFiles.length} OBJ files...`
     );
 
-    for (const file of objFiles) {
+    for (const objFile of objFiles) {
       try {
-        const text = await readFileAsText(file);
-        loadObjFromText(text, file.name);
+        const objText = await readFileAsText(objFile);
+        const baseName = objFile.name.replace(/\.obj$/i, "");
+        
+        // Check for matching MTL file
+        const mtlFile = mtlMap.get(baseName.toLowerCase());
+        let materials = null;
+        
+        if (mtlFile) {
+          try {
+            const mtlText = await readFileAsText(mtlFile);
+            materials = loadMtlFromText(mtlText);
+            if (materials) {
+              setStatus?.(`Loading ${objFile.name} with materials from ${mtlFile.name}...`);
+            }
+          } catch (mtlError) {
+            console.warn("Could not load MTL file:", mtlError);
+          }
+        }
+        
+        loadObjFromText(objText, objFile.name, materials);
       } catch (error) {
         console.error(error);
-        setStatus?.(`Error reading ${file.name}.`);
+        setStatus?.(`Error reading ${objFile.name}.`);
       }
     }
 
@@ -98,7 +148,7 @@ export function setupObjImport({
     }
   });
 
-  return { loadFromText: loadObjFromText };
+  return { loadFromText: loadObjFromText, loadMtlFromText };
 }
 
 // Coordinate OBJ import, export, and delete wiring.

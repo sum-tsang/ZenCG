@@ -21,6 +21,7 @@ import { setupLibraryImport } from "./io/modelLibrary.js";
 import { setupShortcuts } from "./app/shortcuts.js";
 import { setupResizeAndRender } from "./scene/renderLoop.js";
 import { createStatusUpdater } from "./app/status.js";
+import { MaterialPanel } from "./modelMaterial/materialPanel.js";
 
 const dom = getDomRefs();
 assertDom(dom);
@@ -32,6 +33,7 @@ const { renderer, scene, camera, target, importRoot, selectionHelper } =
   createSceneContext(dom.canvas);
 
 let transformationManager = null;
+let materialPanel = null;
 let importer = null;
 let envGizmo = null;
 // Placeholder delete handler wired during initialization.
@@ -40,6 +42,7 @@ let deleteImportedObject = () => {};
 // Set the current selection in the transform manager.
 const selectObject = (object) => {
   transformationManager?.setObject(object);
+  materialPanel?.setObject(object);
 };
 
 // Render the object list using the current store state.
@@ -79,6 +82,9 @@ init();
 // Initialize editor subsystems and UI wiring.
 function init() {
   envGizmo = createEnvironmentGizmo(dom.envGizmoCanvas, camera);
+
+  // Initialize material panel
+  materialPanel = new MaterialPanel("material-panel-container");
 
   transformationManager = setupTransformTools({
     scene,
