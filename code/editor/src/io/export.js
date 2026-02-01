@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
 
 // Generate MTL content from an object's materials
@@ -117,25 +118,54 @@ function textureToBlob(texture) {
 }
 
 // Wire up OBJ export button handling.
-export function setupObjExport({ button, getObject, setStatus }) {
+export function setupObjExport({ button, getObject, getAllObjects, setStatus }) {
   if (!(button instanceof HTMLButtonElement)) {
     throw new Error("OBJ export button not found.");
   }
 
   const exporter = new OBJExporter();
 
-  button.addEventListener("click", async () => {
-    const object = getObject?.();
-    if (!object) {
-      setStatus?.("No model to export.");
-      return;
+  button.addEventListener("click", async (event) => {
+    // Shift+click exports all objects as one combined file
+    const exportAll = event.shiftKey;
+    
+    let objectToExport;
+    let statusPrefix = "";
+    
+    if (exportAll && getAllObjects) {
+      const allObjects = getAllObjects();
+      if (!allObjects || allObjects.length === 0) {
+        setStatus?.("No models to export.");
+        return;
+      }
+      
+      // Create a temporary group containing all objects for export
+      objectToExport = new THREE.Group();
+      objectToExport.name = "CombinedExport";
+      
+      // Clone each object into the group to avoid modifying originals
+      allObjects.forEach((obj) => {
+        if (obj) {
+          // Clone the object to avoid moving the original
+          const clone = obj.clone(true);
+          objectToExport.add(clone);
+        }
+      });
+      
+      statusPrefix = `Exporting ${allObjects.length} objects combined... `;
+    } else {
+      objectToExport = getObject?.();
+      if (!objectToExport) {
+        setStatus?.("No model to export. (Shift+click to export all)");
+        return;
+      }
     }
 
     const textures = [];
-    const { mtl, materialMap } = generateMtlContent(object, textures);
+    const { mtl, materialMap } = generateMtlContent(objectToExport, textures);
 
     // Assign material names before export
-    object.traverse((child) => {
+    objectToExport.traverse((child) => {
       if (child.isMesh && child.material) {
         const mat = Array.isArray(child.material) ? child.material[0] : child.material;
         const mtlName = materialMap.get(mat.uuid);
@@ -145,7 +175,7 @@ export function setupObjExport({ button, getObject, setStatus }) {
       }
     });
 
-    let objOutput = exporter.parse(object);
+    let objOutput = exporter.parse(objectToExport);
 
     // Add mtllib reference if we have materials
     if (mtl) {
@@ -154,17 +184,31 @@ export function setupObjExport({ button, getObject, setStatus }) {
 
     // If there are textures, we need to export as a zip
     if (textures.length > 0) {
-      setStatus?.("Exporting with textures...");
+      setStatus?.(statusPrefix + "Exporting with textures...");
       await exportAsZip(objOutput, mtl, textures, setStatus);
     } else if (mtl) {
       // Export both OBJ and MTL files
       downloadFile(objOutput, "zencg-export.obj", "text/plain");
       downloadFile(mtl, "zencg-export.mtl", "text/plain");
-      setStatus?.("Exported OBJ + MTL.");
+      setStatus?.(statusPrefix + "Exported OBJ + MTL.");
     } else {
       // No materials, just export OBJ
       downloadFile(objOutput, "zencg-export.obj", "text/plain");
-      setStatus?.("Exported OBJ.");
+      setStatus?.(statusPrefix + "Exported OBJ.");
+    }
+    
+    // Clean up temporary group if we created one
+    if (exportAll) {
+      objectToExport.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
     }
   });
 }

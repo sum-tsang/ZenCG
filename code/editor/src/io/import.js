@@ -347,6 +347,7 @@ export function setupImportExport({
   setupObjExport({
     button: dom.exportButton,
     getObject: () => store.getState().currentObject,
+    getAllObjects: () => store.getState().importedObjects,
     setStatus,
   });
 
