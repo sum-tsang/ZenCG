@@ -14,6 +14,7 @@ export function setupTransformTools({
   renderObjectList,
   updateStoredTransform,
   scheduleSave,
+  onSelectObject,
 }) {
   const manager = new TransformationManager(
     scene,
@@ -30,6 +31,8 @@ export function setupTransformTools({
         dom.deleteButton.disabled = !object;
         updateSelectionOutline(selectionHelper, object);
         renderObjectList();
+        // Notify app of selection change (for material panel, etc.)
+        if (onSelectObject) onSelectObject(object);
       },
     }
   );

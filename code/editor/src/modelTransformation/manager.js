@@ -91,9 +91,11 @@ export class TransformationManager {
 
   // Attach pointer listeners for selection and gizmo interactions.
   setupEventListeners() {
-    this.canvas.addEventListener("pointerdown", this.onMouseDown);
-    document.addEventListener("pointermove", this.onMouseMove);
-    document.addEventListener("pointerup", this.onMouseUp);
+    // Use arrow functions to ensure proper binding and capture
+    const self = this;
+    this.canvas.addEventListener("pointerdown", (event) => self.onMouseDown(event), false);
+    document.addEventListener("pointermove", (event) => self.onMouseMove(event), false);
+    document.addEventListener("pointerup", (event) => self.onMouseUp(event), false);
     // Prevent the browser context menu so drag interactions aren't interrupted.
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   }
@@ -586,9 +588,10 @@ export class TransformationManager {
         this.cacheInitialSnapshot(object);
       }
       this.panel.renderHistory(this.actionHistory.entries());
-      if (this.onSelectionChange) {
-        this.onSelectionChange(object);
-      }
+    }
+    // Always notify of selection (for material panel, etc.)
+    if (this.onSelectionChange) {
+      this.onSelectionChange(object);
     }
   }
 

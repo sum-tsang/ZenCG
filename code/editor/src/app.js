@@ -99,6 +99,9 @@ function init() {
     renderObjectList,
     updateStoredTransform,
     scheduleSave,
+    onSelectObject: (object) => {
+      materialPanel?.setObject(object);
+    },
   });
 
   attachCameraControls({

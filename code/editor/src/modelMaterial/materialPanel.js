@@ -105,52 +105,6 @@ export class MaterialPanel {
     textureSection.appendChild(texturePreviewRow);
     panel.appendChild(textureSection);
 
-    // Roughness slider
-    const roughnessSection = this.createSection("Roughness");
-    const roughnessRow = document.createElement("div");
-    roughnessRow.className = "material-row slider-row";
-
-    this.roughnessSlider = document.createElement("input");
-    this.roughnessSlider.type = "range";
-    this.roughnessSlider.min = "0";
-    this.roughnessSlider.max = "1";
-    this.roughnessSlider.step = "0.01";
-    this.roughnessSlider.value = "0.7";
-    this.roughnessSlider.className = "material-slider";
-    this.roughnessSlider.addEventListener("input", (e) => this.onRoughnessChange(e.target.value));
-
-    this.roughnessValue = document.createElement("span");
-    this.roughnessValue.className = "slider-value";
-    this.roughnessValue.textContent = "0.70";
-
-    roughnessRow.appendChild(this.roughnessSlider);
-    roughnessRow.appendChild(this.roughnessValue);
-    roughnessSection.appendChild(roughnessRow);
-    panel.appendChild(roughnessSection);
-
-    // Metalness slider
-    const metalnessSection = this.createSection("Metalness");
-    const metalnessRow = document.createElement("div");
-    metalnessRow.className = "material-row slider-row";
-
-    this.metalnessSlider = document.createElement("input");
-    this.metalnessSlider.type = "range";
-    this.metalnessSlider.min = "0";
-    this.metalnessSlider.max = "1";
-    this.metalnessSlider.step = "0.01";
-    this.metalnessSlider.value = "0";
-    this.metalnessSlider.className = "material-slider";
-    this.metalnessSlider.addEventListener("input", (e) => this.onMetalnessChange(e.target.value));
-
-    this.metalnessValue = document.createElement("span");
-    this.metalnessValue.className = "slider-value";
-    this.metalnessValue.textContent = "0.00";
-
-    metalnessRow.appendChild(this.metalnessSlider);
-    metalnessRow.appendChild(this.metalnessValue);
-    metalnessSection.appendChild(metalnessRow);
-    panel.appendChild(metalnessSection);
-
     this.container.appendChild(panel);
     this.panel = panel;
   }
@@ -199,13 +153,6 @@ export class MaterialPanel {
       this.texturePreview.classList.remove("has-texture");
       this.removeTextureBtn.style.display = "none";
     }
-
-    // Update sliders
-    this.roughnessSlider.value = props.roughness;
-    this.roughnessValue.textContent = props.roughness.toFixed(2);
-
-    this.metalnessSlider.value = props.metalness;
-    this.metalnessValue.textContent = props.metalness.toFixed(2);
   }
 
   /**
@@ -248,26 +195,6 @@ export class MaterialPanel {
     this.texturePreview.classList.remove("has-texture");
     this.removeTextureBtn.style.display = "none";
     this.emitChange("texture", null);
-  }
-
-  /**
-   * Handle roughness slider change
-   */
-  onRoughnessChange(value) {
-    const numValue = parseFloat(value);
-    this.roughnessValue.textContent = numValue.toFixed(2);
-    this.editor.setRoughness(numValue, this.currentObject);
-    this.emitChange("roughness", numValue);
-  }
-
-  /**
-   * Handle metalness slider change
-   */
-  onMetalnessChange(value) {
-    const numValue = parseFloat(value);
-    this.metalnessValue.textContent = numValue.toFixed(2);
-    this.editor.setMetalness(numValue, this.currentObject);
-    this.emitChange("metalness", numValue);
   }
 
   /**

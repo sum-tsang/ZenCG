@@ -8,6 +8,8 @@ export class MaterialEditor {
   constructor() {
     this.textureLoader = new THREE.TextureLoader();
     this.currentObject = null;
+    // Track which objects have had their materials cloned
+    this.clonedMaterials = new WeakSet();
   }
 
   /**
@@ -16,6 +18,21 @@ export class MaterialEditor {
    */
   setObject(object) {
     this.currentObject = object;
+  }
+
+  /**
+   * Ensure a material is unique to this object (clone if shared)
+   * @param {THREE.Material} material - The material to check
+   * @returns {THREE.Material} A unique material instance
+   */
+  ensureUniqueMaterial(material) {
+    // If we haven't cloned this material yet, clone it
+    if (!this.clonedMaterials.has(material)) {
+      const cloned = material.clone();
+      this.clonedMaterials.add(cloned);
+      return cloned;
+    }
+    return material;
   }
 
   /**
@@ -69,6 +86,13 @@ export class MaterialEditor {
 
     object.traverse((child) => {
       if (child.isMesh && child.material) {
+        // Clone materials if shared to avoid affecting other objects
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => this.ensureUniqueMaterial(mat));
+        } else {
+          child.material = this.ensureUniqueMaterial(child.material);
+        }
+        
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         
         materials.forEach((mat) => {
@@ -152,6 +176,13 @@ export class MaterialEditor {
 
     object.traverse((child) => {
       if (child.isMesh && child.material) {
+        // Clone materials if shared to avoid affecting other objects
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => this.ensureUniqueMaterial(mat));
+        } else {
+          child.material = this.ensureUniqueMaterial(child.material);
+        }
+        
         const materials = Array.isArray(child.material) ? child.material : [child.material];
 
         materials.forEach((mat) => {
@@ -196,6 +227,13 @@ export class MaterialEditor {
 
     object.traverse((child) => {
       if (child.isMesh && child.material) {
+        // Clone materials if shared to avoid affecting other objects
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => this.ensureUniqueMaterial(mat));
+        } else {
+          child.material = this.ensureUniqueMaterial(child.material);
+        }
+        
         const materials = Array.isArray(child.material) ? child.material : [child.material];
 
         materials.forEach((mat) => {
@@ -253,6 +291,13 @@ export class MaterialEditor {
 
     object.traverse((child) => {
       if (child.isMesh && child.material) {
+        // Clone materials if shared to avoid affecting other objects
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => this.ensureUniqueMaterial(mat));
+        } else {
+          child.material = this.ensureUniqueMaterial(child.material);
+        }
+        
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach((mat) => {
           if ("roughness" in mat) {
@@ -274,6 +319,13 @@ export class MaterialEditor {
 
     object.traverse((child) => {
       if (child.isMesh && child.material) {
+        // Clone materials if shared to avoid affecting other objects
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => this.ensureUniqueMaterial(mat));
+        } else {
+          child.material = this.ensureUniqueMaterial(child.material);
+        }
+        
         const materials = Array.isArray(child.material) ? child.material : [child.material];
         materials.forEach((mat) => {
           if ("metalness" in mat) {
