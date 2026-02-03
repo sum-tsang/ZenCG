@@ -44,4 +44,21 @@ export function setupShortcuts({ store, transformationManager, deleteImportedObj
       deleteImportedObject(store.getState().currentObject);
     }
   });
+
+  document.addEventListener("keydown", (event) => {
+    if (isEditableTarget(event.target)) return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+    const key = event.key.toLowerCase();
+    if (key === "g") {
+      event.preventDefault();
+      transformationManager.setMode("translate");
+    } else if (key === "r") {
+      event.preventDefault();
+      transformationManager.setMode("rotate");
+    } else if (key === "s") {
+      event.preventDefault();
+      transformationManager.setMode("scale");
+    }
+  });
 }
