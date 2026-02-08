@@ -163,11 +163,8 @@
       <div class="manual-card" role="document">
         <header class="manual-header">
           <div>
-            <p class="manual-eyebrow">User Manual</p>
-            <h2 id="manual-title">ZenCG Quick Guide</h2>
-            <p class="manual-lede">
-              A fast, friendly walkthrough for importing, transforming, and exporting your models.
-            </p>
+            <h2 id="manual-title" class="manual-title">User Manual</h2>
+            <p class="manual-subtitle">ZenCG tutorials and information.</p>
           </div>
           <button class="manual-close" type="button" data-manual-close aria-label="Close user manual">
             Close
@@ -176,29 +173,33 @@
         <div class="manual-content">
           <div class="manual-grid">
             <section class="manual-section">
-              <h3>Getting Started</h3>
-              <p>Import an OBJ, select it in the Objects list, then use the transform tools to move, rotate, or scale.</p>
-              <p class="manual-tip">Tip: Base mesh objects auto-scale to keep proportions consistent.</p>
+              <h3>Import</h3>
+              <p>OBJ + optional MTL.</p>
             </section>
             <section class="manual-section">
-              <h3>Transform Tools</h3>
-              <p>Use the Mode buttons to switch between translate, rotate, and scale. Numeric inputs allow precise edits.</p>
-              <p class="manual-kbd">Shortcuts: G = Move, R = Rotate, S = Scale</p>
+              <h3>Select</h3>
+              <p>Choose from the Objects list.</p>
+            </section>
+            <section class="manual-section">
+              <h3>Transform</h3>
+              <p>Use G / R / S or numeric inputs.</p>
             </section>
             <section class="manual-section">
               <h3>Materials</h3>
-              <p>Adjust Base Color and upload textures. Remove textures anytime to revert to solid color.</p>
-              <p class="manual-kbd">Supports PNG and JPG textures.</p>
+              <p>Base color + texture.</p>
             </section>
             <section class="manual-section">
-              <h3>Export & Undo</h3>
-              <p>Export the selected object or the whole scene. Undo deletes with Cmd/Ctrl + Z.</p>
-              <p class="manual-kbd">Delete: Del / Backspace</p>
+              <h3>Component</h3>
+              <p>Create Component split.</p>
             </section>
-          </div>
-          <div class="manual-footer">
-            <p>Need more? The full manual is coming soon.</p>
-            <button class="manual-primary" type="button" data-manual-close>Start Editing</button>
+            <section class="manual-section">
+              <h3>Export</h3>
+              <p>Selected or whole scene.</p>
+            </section>
+            <section class="manual-section">
+              <h3>Undo / Delete</h3>
+              <p>Cmd/Ctrl+Z, Del / Backspace.</p>
+            </section>
           </div>
         </div>
       </div>

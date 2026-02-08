@@ -1391,16 +1391,16 @@ body.manual-open .manual-card {
   color: var(--glass-text-muted);
 }
 
-.manual-header h2 {
+.manual-title {
   margin: 0 0 6px;
-  font-size: 1.4rem;
-  letter-spacing: 0.08em;
+  font-size: 1.8rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.manual-lede {
+.manual-subtitle {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--glass-text-muted);
   max-width: 420px;
 }
