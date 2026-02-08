@@ -1,3 +1,4 @@
+// Material edit operations.
 import * as THREE from "three";
 
 /**

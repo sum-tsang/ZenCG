@@ -1,3 +1,4 @@
+// Material panel UI.
 import { materialEditor } from "./materialEditor.js";
 
 /**
@@ -83,15 +84,6 @@ export class MaterialPanel {
     this.textureInput.addEventListener("change", (e) => this.onTextureUpload(e));
 
     textureLabel.appendChild(this.textureInput);
-    textureRow.appendChild(textureLabel);
-
-    // Texture preview and remove button
-    const texturePreviewRow = document.createElement("div");
-    texturePreviewRow.className = "texture-preview-row";
-    
-    this.texturePreview = document.createElement("div");
-    this.texturePreview.className = "texture-preview";
-    this.texturePreview.textContent = "No texture";
 
     this.removeTextureBtn = document.createElement("button");
     this.removeTextureBtn.className = "remove-texture-btn";
@@ -99,8 +91,18 @@ export class MaterialPanel {
     this.removeTextureBtn.style.display = "none";
     this.removeTextureBtn.addEventListener("click", () => this.onRemoveTexture());
 
+    textureRow.appendChild(textureLabel);
+    textureRow.appendChild(this.removeTextureBtn);
+
+    // Texture preview
+    const texturePreviewRow = document.createElement("div");
+    texturePreviewRow.className = "texture-preview-row";
+    
+    this.texturePreview = document.createElement("div");
+    this.texturePreview.className = "texture-preview";
+    this.texturePreview.textContent = "No texture";
+
     texturePreviewRow.appendChild(this.texturePreview);
-    texturePreviewRow.appendChild(this.removeTextureBtn);
     textureSection.appendChild(textureRow);
     textureSection.appendChild(texturePreviewRow);
     panel.appendChild(textureSection);

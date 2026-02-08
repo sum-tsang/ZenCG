@@ -1,3 +1,4 @@
+// Transform tools wiring.
 import { TransformationManager } from "./manager.js";
 
 // Create and configure the transformation manager wiring.
@@ -15,6 +16,9 @@ export function setupTransformTools({
   updateStoredTransform,
   scheduleSave,
   onSelectObject,
+  initialHistory,
+  onHistoryChange,
+  actionHistoryLimit,
 }) {
   const manager = new TransformationManager(
     scene,
@@ -22,6 +26,9 @@ export function setupTransformTools({
     "transformation-panel-container",
     {
       selectableRoot: importRoot,
+      initialHistory,
+      onHistoryChange,
+      actionHistoryLimit,
       resolveSelection: (object) => findImportedRoot(importRoot, object),
       onSelectionChange: (object) => {
         store.mutate((state) => {
@@ -33,6 +40,11 @@ export function setupTransformTools({
         renderObjectList();
         // Notify app of selection change (for material panel, etc.)
         if (onSelectObject) onSelectObject(object);
+      },
+      onMultiSelectionChange: (objects) => {
+        store.mutate((state) => {
+          state.selectedObjects = Array.isArray(objects) ? objects : [];
+        });
       },
       onSplit: ({ original, inside, outside }) => {
         store.mutate((state) => {

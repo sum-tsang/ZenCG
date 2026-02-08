@@ -1,3 +1,4 @@
+// OBJ/MTL import pipeline.
 import * as THREE from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
@@ -121,6 +122,7 @@ export function setupObjImport({
     
     return object;
   }
+
 
   // Parse MTL text and return materials
   function loadMtlFromText(text) {
@@ -311,6 +313,9 @@ export function setupImportExport({
   placeImportedObject,
   applyTransform,
   deleteImportedObject,
+  beforeObjectAdd,
+  getExportTarget,
+  getExportFilename,
 }) {
   const importer = setupObjImport({
     fileInput: dom.fileInput,
@@ -319,6 +324,9 @@ export function setupImportExport({
     setStatus,
     onObjectLoaded: (object) => {
       if (!object) return;
+      if (typeof beforeObjectAdd === "function") {
+        beforeObjectAdd(object);
+      }
       store.mutate((state) => {
         placeImportedObject(object, state, config);
         if (state.isRestoring && state.pendingTransforms.length > 0) {
@@ -346,7 +354,11 @@ export function setupImportExport({
 
   setupObjExport({
     button: dom.exportButton,
-    getObject: () => store.getState().currentObject,
+    getObject:
+      typeof getExportTarget === "function"
+        ? getExportTarget
+        : () => store.getState().currentObject,
+    getFilename: getExportFilename,
     setStatus,
   });
 

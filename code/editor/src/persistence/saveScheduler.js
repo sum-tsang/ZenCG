@@ -1,3 +1,4 @@
+// Debounced save scheduler.
 // Create a debounced save scheduler that respects restore mode.
 export function createSaveScheduler({ isRestoring, save }) {
   let saveTimeout = null;

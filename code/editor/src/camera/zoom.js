@@ -1,3 +1,4 @@
+// Zoom control helper.
 import * as THREE from "three";
 
 // Create Zoom
@@ -6,7 +7,7 @@ export function createZoom({ camera, target }) {
   const orbitSpherical = new THREE.Spherical();
   const zoomSpeed = 0.0015;
   const minDistance = 0.2;
-  const maxDistance = 200;
+  const maxDistance = 1500;
 
   // Zoom
   return function zoom(deltaY) {

@@ -1,3 +1,4 @@
+// Model library loader.
 // Wire up the model library UI and loading flow.
 export function setupLibraryImport({ dom, importer, setStatus }) {
   const select = dom.librarySelect;

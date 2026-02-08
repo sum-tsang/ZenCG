@@ -1,3 +1,4 @@
+// Placement helpers.
 import * as THREE from "three";
 
 // Position a newly imported object with spacing offset.

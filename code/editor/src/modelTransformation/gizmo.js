@@ -1,3 +1,4 @@
+// Transform gizmo interactions.
 import * as THREE from "three";
 
 /**

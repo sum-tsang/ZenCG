@@ -1,3 +1,4 @@
+// Transform manager orchestration.
 import { TransformationGizmo } from "./gizmo.js";
 import { TransformationPanel } from "./panel.js";
 import * as THREE from "three";
@@ -8,6 +9,21 @@ import {
   createTransformSnapshot,
 } from "./undo.js";
 import { ActionHistory } from "./actionHistory.js";
+
+function updateSplitButtonContent(button, label, hint = "") {
+  if (!button) return;
+  const labelEl = button.querySelector(".split-label");
+  const hintEl = button.querySelector(".split-hint");
+  if (labelEl) {
+    labelEl.textContent = label;
+  }
+  if (hintEl) {
+    hintEl.textContent = hint;
+  }
+  if (!labelEl && !hintEl) {
+    button.textContent = hint ? `${label} (${hint})` : label;
+  }
+}
 
 /**
  * TransformationManager - Orchestrates the 3D gizmo and UI panel
@@ -21,8 +37,9 @@ export class TransformationManager {
     this.currentObject = null;
     this.camera = null;
     this.selectedObject = null;
+    this.selectedObjects = [];
     this.undoHistory = new UndoHistory();
-    this.actionHistory = new ActionHistory();
+    this.actionHistory = new ActionHistory({ limit: options.actionHistoryLimit });
     this.initializedObjects = new WeakSet();
     this.initialSnapshots = new WeakMap();
     this.wasDraggingGizmo = false;
@@ -32,12 +49,23 @@ export class TransformationManager {
       typeof options.resolveSelection === "function" ? options.resolveSelection : null;
     this.onSelectionChange =
       typeof options.onSelectionChange === "function" ? options.onSelectionChange : null;
+    this.onMultiSelectionChange =
+      typeof options.onMultiSelectionChange === "function"
+        ? options.onMultiSelectionChange
+        : null;
     this.onSplit =
       typeof options.onSplit === "function" ? options.onSplit : null;
+    this.onHistoryChange =
+      typeof options.onHistoryChange === "function" ? options.onHistoryChange : null;
+
+    if (Array.isArray(options.initialHistory)) {
+      this.actionHistory.setEntries(options.initialHistory);
+    }
 
     // Initialize gizmo and panel
     this.gizmo = new TransformationGizmo(scene);
     this.panel = new TransformationPanel(panelContainerId);
+    this.panel.renderHistory(this.actionHistory.entries());
 
     // Raycaster for model selection
     this.raycaster = new THREE.Raycaster();
@@ -149,7 +177,7 @@ export class TransformationManager {
     // Update panel buttons for box selection mode
     const btn = this.panel.container.querySelector('.split-btn');
     const cancelBtn = this.panel.container.querySelector('.cancel-split-btn');
-    if (btn) btn.textContent = 'Confirm Component';
+    updateSplitButtonContent(btn, 'Confirm Component');
     if (cancelBtn) cancelBtn.style.display = 'inline-block';
   }
 
@@ -315,7 +343,7 @@ export class TransformationManager {
     const btn = this.panel.container.querySelector('.split-btn');
     const cancelBtn = this.panel.container.querySelector('.cancel-split-btn');
     const modeButtons = this.panel.container.querySelector('.mode-buttons');
-    if (btn) btn.textContent = 'Create Component (click mesh)';
+    updateSplitButtonContent(btn, 'Create Component', 'click mesh');
     if (cancelBtn) cancelBtn.style.display = 'none';
     if (modeButtons) modeButtons.style.display = '';
   }
@@ -342,7 +370,7 @@ export class TransformationManager {
     const btn2 = this.panel.container.querySelector('.split-btn');
     const cancelBtn2 = this.panel.container.querySelector('.cancel-split-btn');
     const modeButtons2 = this.panel.container.querySelector('.mode-buttons');
-    if (btn2) btn2.textContent = 'Create Component (click mesh)';
+    updateSplitButtonContent(btn2, 'Create Component', 'click mesh');
     if (cancelBtn2) cancelBtn2.style.display = 'none';
     if (modeButtons2) modeButtons2.style.display = '';
     // Restore gizmo target
@@ -457,8 +485,8 @@ export class TransformationManager {
       const hit = intersects[0].object;
       const resolved = this.resolveSelection ? this.resolveSelection(hit) : hit;
       if (resolved) {
-        this.selectObject(resolved);
-        selectedObject = resolved;
+        this.toggleSelection(resolved);
+        selectedObject = this.selectedObject;
       }
     }
 
@@ -488,8 +516,8 @@ export class TransformationManager {
     }
 
     if (!selectedObject && !this.wasDraggingGizmo) {
-      if (this.selectedObject) {
-        this.selectObject(null);
+      if (this.selectedObject || this.selectedObjects.length > 0) {
+        this.toggleSelection(null);
       }
     }
 
@@ -585,24 +613,58 @@ export class TransformationManager {
   selectObject(object) {
     const selectionChanged = this.selectedObject !== object;
     this.selectedObject = object;
-    if (object) {
-      this.gizmo.setObject(object);
+    this.selectedObjects = object ? [object] : [];
+    this.syncSelectionUi(selectionChanged);
+  }
+
+  // Toggle object selection for multi-select.
+  toggleSelection(object) {
+    if (!object) {
+      this.selectObject(null);
+      return;
+    }
+
+    const previousSelected = this.selectedObject;
+    const index = this.selectedObjects.indexOf(object);
+    if (index === -1) {
+      this.selectedObjects.push(object);
+      this.selectedObject = object;
+    } else {
+      this.selectedObjects.splice(index, 1);
+      if (this.selectedObject === object) {
+        this.selectedObject = this.selectedObjects[this.selectedObjects.length - 1] ?? null;
+      }
+    }
+
+    const selectionChanged = previousSelected !== this.selectedObject;
+    this.syncSelectionUi(selectionChanged);
+  }
+
+  // Sync gizmo/panel UI after selection changes.
+  syncSelectionUi(selectionChanged) {
+    if (this.selectedObject) {
+      this.gizmo.setObject(this.selectedObject);
       this.gizmo.show();
-      this.panel.setObject(object);
+      this.panel.setObject(this.selectedObject);
       this.panel.setGizmo(this.gizmo);
       this.panel.updatePanelFromObject();
     } else {
       this.gizmo.hide();
     }
+
     if (selectionChanged) {
-      if (object) {
-        this.cacheInitialSnapshot(object);
+      if (this.selectedObject) {
+        this.cacheInitialSnapshot(this.selectedObject);
       }
       this.panel.renderHistory(this.actionHistory.entries());
     }
+
     // Always notify of selection (for material panel, etc.)
     if (this.onSelectionChange) {
-      this.onSelectionChange(object);
+      this.onSelectionChange(this.selectedObject);
+    }
+    if (this.onMultiSelectionChange) {
+      this.onMultiSelectionChange([...this.selectedObjects]);
     }
   }
 
@@ -616,6 +678,7 @@ export class TransformationManager {
   // Set the current gizmo mode.
   setMode(mode) {
     this.gizmo.setMode(mode);
+    this.panel.setMode(mode);
   }
 
   // Reset undo history to the current object transform.
@@ -624,6 +687,7 @@ export class TransformationManager {
     this.undoHistory.clear();
     this.actionHistory.clear();
     this.panel.renderHistory([]);
+    this.notifyHistoryChange();
     this.recordSnapshot();
     this.initializedObjects.add(this.selectedObject);
     this.initialSnapshots.delete(this.selectedObject);
@@ -675,6 +739,13 @@ export class TransformationManager {
     if (!label) return;
     this.actionHistory.record(label);
     this.panel.renderHistory(this.actionHistory.entries());
+    this.notifyHistoryChange();
+  }
+
+  // Persist history updates when available.
+  notifyHistoryChange() {
+    if (!this.onHistoryChange) return;
+    this.onHistoryChange(this.actionHistory.entries({ newestFirst: false }));
   }
 
   // Map internal actions to display labels.
@@ -691,6 +762,8 @@ export class TransformationManager {
         return "Reset";
       case "undo":
         return "Undo";
+      case "split":
+        return "Create Component";
       default:
         return "Transform";
     }

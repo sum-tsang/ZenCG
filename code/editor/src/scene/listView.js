@@ -1,5 +1,6 @@
+// Object list rendering.
 // Render the imported object list UI.
-export function renderObjectList({ dom, state, onSelect, onDelete }) {
+export function renderObjectList({ dom, state, onSelect, onDelete, onToggleSelect }) {
   if (!(dom.objectList instanceof HTMLUListElement)) {
     return;
   }
@@ -31,8 +32,19 @@ export function renderObjectList({ dom, state, onSelect, onDelete }) {
     if (object === state.currentObject) {
       button.classList.add("active");
     }
+    if (
+      Array.isArray(state.selectedObjects) &&
+      state.selectedObjects.includes(object) &&
+      object !== state.currentObject
+    ) {
+      row.classList.add("multi-selected");
+    }
     button.addEventListener("click", () => {
       onSelect?.(object);
+    });
+    row.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      onToggleSelect?.(object);
     });
     const removeButton = document.createElement("button");
     removeButton.type = "button";

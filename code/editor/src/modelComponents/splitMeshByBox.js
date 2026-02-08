@@ -1,3 +1,4 @@
+// Mesh split utility.
 import * as THREE from 'three';
 
 /**

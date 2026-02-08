@@ -1,3 +1,4 @@
+// Transform serialization helpers.
 import { materialEditor } from "../modelMaterial/materialEditor.js";
 
 // Serialize an object's transform to plain arrays.
@@ -39,4 +40,15 @@ export function updateStoredMaterial(object, state) {
   const entry = state.storedImports[index];
   if (!entry) return;
   entry.material = materialEditor.serializeMaterial(object);
+}
+
+// Update the saved name for an object in state.
+export function updateStoredName(object, state, name) {
+  const index = state.importedObjects.indexOf(object);
+  if (index === -1) return;
+  const entry = state.storedImports[index];
+  if (!entry) return;
+  if (typeof name === "string" && name.trim()) {
+    entry.name = name.trim();
+  }
 }

@@ -1,3 +1,4 @@
+// Action history tracker.
 const DEFAULT_ACTION_LIMIT = 24;
 
 // Action History Tracker
@@ -6,6 +7,19 @@ export class ActionHistory {
   constructor({ limit = DEFAULT_ACTION_LIMIT } = {}) {
     this.limit = limit;
     this.stack = [];
+  }
+
+  // Replace entries with a sanitized list.
+  setEntries(entries = []) {
+    if (!Array.isArray(entries)) {
+      this.stack = [];
+      return;
+    }
+    const cleaned = entries
+      .filter((entry) => typeof entry === "string")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    this.stack = cleaned.slice(-this.limit);
   }
 
   // Clear

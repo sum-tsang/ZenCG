@@ -1,4 +1,39 @@
+// Transform panel UI.
 import * as THREE from "three";
+import { unitsToMeters, metersToUnits } from "../app/units.js";
+
+const svgNs = "http://www.w3.org/2000/svg";
+
+function createModeIcon(mode) {
+  const svg = document.createElementNS(svgNs, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add("mode-icon");
+
+  const path = document.createElementNS(svgNs, "path");
+
+  if (mode === "translate") {
+    path.setAttribute(
+      "d",
+      "M12 2l3 3h-2v4h-2V5H9l3-3zm0 20l-3-3h2v-4h2v4h2l-3 3zm10-10l-3 3v-2h-4v-2h4V9l3 3zM2 12l3-3v2h4v2H5v2l-3-3z"
+    );
+  } else if (mode === "rotate") {
+    path.setAttribute(
+      "d",
+      "M12 4a8 8 0 1 1-7.45 5H6a6 6 0 1 0 6-4V4zM5 9V5h4l-1.6 1.6A8 8 0 0 1 12 4"
+    );
+  } else {
+    path.setAttribute(
+      "d",
+      "M5 5h5v2H7v3H5V5zm14 14h-5v-2h3v-3h2v5zM14 5h5v5h-2V7h-3V5zM5 14h2v3h3v2H5v-5z"
+    );
+  }
+
+  svg.appendChild(path);
+  return svg;
+}
+
+const formatValue = (value, digits = 2) => parseFloat(Number(value).toFixed(digits));
 
 /**
  * TransformationPanel - UI for numerical transformation inputs
@@ -57,11 +92,14 @@ export class TransformationPanel {
 
     modes.forEach((mode) => {
       const btn = document.createElement("button");
-      btn.textContent = mode.name;
+      btn.setAttribute("aria-label", mode.name);
+      btn.setAttribute("title", mode.name);
+      btn.setAttribute("aria-pressed", mode.value === "translate" ? "true" : "false");
       btn.className = `mode-btn ${mode.value}`;
       if (mode.value === "translate") btn.classList.add("active");
       btn.dataset.mode = mode.value;
-      btn.addEventListener("click", (e) => this.setMode(e.target.dataset.mode));
+      btn.addEventListener("click", (e) => this.setMode(e.currentTarget.dataset.mode));
+      btn.appendChild(createModeIcon(mode.value));
       modeButtons.appendChild(btn);
     });
 
@@ -72,8 +110,14 @@ export class TransformationPanel {
     const splitRow = document.createElement("div");
     splitRow.className = "split-row";
     const splitBtn = document.createElement("button");
-    splitBtn.textContent = "Create Component (click mesh)";
     splitBtn.className = "split-btn";
+    const splitLabel = document.createElement("span");
+    splitLabel.className = "split-label";
+    splitLabel.textContent = "Create Component";
+    const splitHint = document.createElement("span");
+    splitHint.className = "split-hint";
+    splitHint.textContent = "click mesh";
+    splitBtn.append(splitLabel, splitHint);
     splitRow.appendChild(splitBtn);
     
     // Cancel button (hidden by default, shown during box selection)
@@ -81,7 +125,6 @@ export class TransformationPanel {
     cancelBtn.textContent = "Cancel";
     cancelBtn.className = "cancel-split-btn";
     cancelBtn.style.display = "none";
-    cancelBtn.style.marginLeft = "8px";
     splitRow.appendChild(cancelBtn);
     
     panel.appendChild(splitRow);
@@ -92,17 +135,22 @@ export class TransformationPanel {
       if (this.listeners.onCancelSplit) this.listeners.onCancelSplit();
     });
 
+    const unitIndicator = document.createElement("p");
+    unitIndicator.className = "unit-indicator";
+    unitIndicator.textContent = "Units: m";
+    panel.appendChild(unitIndicator);
+
     // Position section
-    this.positionSection = this.createTransformSection("Position", "position", "Position (units)");
+    this.positionSection = this.createTransformSection("Position", "position", "Position (m)");
     panel.appendChild(this.positionSection);
 
     // Rotation section
-    this.rotationSection = this.createTransformSection("Rotation", "rotation", "Rotation (degrees)");
+    this.rotationSection = this.createTransformSection("Rotation", "rotation", "Rotation (deg)");
     this.rotationSection.style.display = "none";
     panel.appendChild(this.rotationSection);
 
     // Scale section
-    this.scaleSection = this.createTransformSection("Scale", "scale", "Scale (multiplier)");
+    this.scaleSection = this.createTransformSection("Scale", "scale", "Scale (x)");
     this.scaleSection.style.display = "none";
     panel.appendChild(this.scaleSection);
 
@@ -115,13 +163,21 @@ export class TransformationPanel {
     resetSection.appendChild(resetBtn);
     panel.appendChild(resetSection);
 
-    // History section
-    const historySection = this.createSection("History");
-    historySection.classList.add("history-section");
-    this.historyList = document.createElement("ul");
-    this.historyList.className = "history-list";
-    historySection.appendChild(this.historyList);
-    panel.appendChild(historySection);
+    const externalHistory = document.getElementById("action-history-list");
+    if (externalHistory instanceof HTMLUListElement) {
+      this.historyList = externalHistory;
+    } else {
+      // History section (fallback)
+      const historySection = this.createSection("History");
+      historySection.classList.add("history-section");
+      const historyScroll = document.createElement("div");
+      historyScroll.className = "history-scroll";
+      this.historyList = document.createElement("ul");
+      this.historyList.className = "history-list";
+      historyScroll.appendChild(this.historyList);
+      historySection.appendChild(historyScroll);
+      panel.appendChild(historySection);
+    }
 
     this.container.appendChild(panel);
     this.renderHistory([]);
@@ -187,8 +243,19 @@ export class TransformationPanel {
         this.onInputChange(e.target, true)
       );
 
+      const unit = document.createElement("span");
+      unit.className = "input-unit";
+      if (property === "rotation") {
+        unit.textContent = "°";
+      } else if (property === "scale") {
+        unit.textContent = "x";
+      } else {
+        unit.textContent = "m";
+      }
+
       row.appendChild(labelEl);
       row.appendChild(input);
+      row.appendChild(unit);
       contentDiv.appendChild(row);
     });
 
@@ -204,10 +271,14 @@ export class TransformationPanel {
   // Switch the active transform mode and visible inputs.
   setMode(mode) {
     const buttons = this.container.querySelectorAll(".mode-btn");
-    buttons.forEach((btn) => btn.classList.remove("active"));
+    buttons.forEach((btn) => {
+      btn.classList.remove("active");
+      btn.setAttribute("aria-pressed", "false");
+    });
     const activeButton = this.container.querySelector(`[data-mode="${mode}"]`);
     if (activeButton) {
       activeButton.classList.add("active");
+      activeButton.setAttribute("aria-pressed", "true");
     }
 
     this.currentMode = mode;
@@ -247,10 +318,15 @@ export class TransformationPanel {
     if (!this.transformObject || this.isUpdatingFromGizmo) return;
 
     const { position, rotation, scale } = this.state;
+    const positionUnits = {
+      x: metersToUnits(position.x),
+      y: metersToUnits(position.y),
+      z: metersToUnits(position.z),
+    };
 
     // Update position
     if (this.transformObject.position) {
-      this.transformObject.position.set(position.x, position.y, position.z);
+      this.transformObject.position.set(positionUnits.x, positionUnits.y, positionUnits.z);
     }
 
     // Update rotation (convert degrees to radians)
@@ -323,23 +399,23 @@ export class TransformationPanel {
 
     // Update position
     this.state.position = {
-      x: parseFloat(position.x.toFixed(2)),
-      y: parseFloat(position.y.toFixed(2)),
-      z: parseFloat(position.z.toFixed(2)),
+      x: formatValue(unitsToMeters(position.x)),
+      y: formatValue(unitsToMeters(position.y)),
+      z: formatValue(unitsToMeters(position.z)),
     };
 
     // Update rotation (convert radians to degrees)
     this.state.rotation = {
-      x: parseFloat(((rotation.x * 180) / Math.PI).toFixed(2)),
-      y: parseFloat(((rotation.y * 180) / Math.PI).toFixed(2)),
-      z: parseFloat(((rotation.z * 180) / Math.PI).toFixed(2)),
+      x: formatValue((rotation.x * 180) / Math.PI),
+      y: formatValue((rotation.y * 180) / Math.PI),
+      z: formatValue((rotation.z * 180) / Math.PI),
     };
 
     // Update scale
     this.state.scale = {
-      x: parseFloat(scale.x.toFixed(2)),
-      y: parseFloat(scale.y.toFixed(2)),
-      z: parseFloat(scale.z.toFixed(2)),
+      x: formatValue(scale.x),
+      y: formatValue(scale.y),
+      z: formatValue(scale.z),
     };
 
     // Update input fields
@@ -441,9 +517,9 @@ export class TransformationPanel {
 
     if (transform.position) {
       this.state.position = {
-        x: parseFloat(transform.position.x.toFixed(2)),
-        y: parseFloat(transform.position.y.toFixed(2)),
-        z: parseFloat(transform.position.z.toFixed(2)),
+        x: formatValue(unitsToMeters(transform.position.x)),
+        y: formatValue(unitsToMeters(transform.position.y)),
+        z: formatValue(unitsToMeters(transform.position.z)),
       };
     }
 
@@ -458,17 +534,17 @@ export class TransformationPanel {
       }
       
       this.state.rotation = {
-        x: parseFloat(((euler.x * 180) / Math.PI).toFixed(2)),
-        y: parseFloat(((euler.y * 180) / Math.PI).toFixed(2)),
-        z: parseFloat(((euler.z * 180) / Math.PI).toFixed(2)),
+        x: formatValue((euler.x * 180) / Math.PI),
+        y: formatValue((euler.y * 180) / Math.PI),
+        z: formatValue((euler.z * 180) / Math.PI),
       };
     }
 
     if (transform.scale) {
       this.state.scale = {
-        x: parseFloat(transform.scale.x.toFixed(2)),
-        y: parseFloat(transform.scale.y.toFixed(2)),
-        z: parseFloat(transform.scale.z.toFixed(2)),
+        x: formatValue(transform.scale.x),
+        y: formatValue(transform.scale.y),
+        z: formatValue(transform.scale.z),
       };
     }
 

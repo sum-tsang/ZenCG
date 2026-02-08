@@ -1,3 +1,4 @@
+// Restore persisted assets.
 import { materialEditor } from "../modelMaterial/materialEditor.js";
 
 // Restore persisted imports and apply their saved transforms.

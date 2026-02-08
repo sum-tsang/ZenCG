@@ -1,3 +1,4 @@
+// Camera control wiring.
 import { createPan } from "./pan.js";
 import { createOrbit } from "./orbit.js";
 import { createZoom } from "./zoom.js";

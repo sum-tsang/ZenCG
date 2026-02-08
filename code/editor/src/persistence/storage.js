@@ -1,3 +1,4 @@
+// IndexedDB persistence.
 // Open or create the IndexedDB database.
 function openDb(config) {
   return new Promise((resolve, reject) => {

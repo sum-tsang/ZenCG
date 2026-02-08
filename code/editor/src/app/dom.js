@@ -1,3 +1,4 @@
+// DOM lookup helpers.
 // Collect DOM references used by the editor.
 export function getDomRefs() {
   return {
@@ -6,6 +7,13 @@ export function getDomRefs() {
     fileInput: document.getElementById("obj-input"),
     exportButton: document.getElementById("obj-export"),
     deleteButton: document.getElementById("obj-delete"),
+    objectNameInput: document.getElementById("object-name-input"),
+    exportNameInput: document.getElementById("export-name-input"),
+    exportSceneToggle: document.getElementById("export-scene-toggle"),
+    toolsToggle: document.getElementById("tools-toggle"),
+    panelToggle: document.getElementById("panel-toggle"),
+    manualButton: document.getElementById("manual-button"),
+    manualModal: document.getElementById("manual-modal"),
     status: document.getElementById("status"),
     librarySelect: document.getElementById("library-select"),
     libraryImportButton: document.getElementById("library-import"),

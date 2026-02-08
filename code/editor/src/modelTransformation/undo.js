@@ -1,3 +1,4 @@
+// Undo stack helpers.
 // Config
 const DEFAULT_LIMIT = 16;
 const DEFAULT_EPSILON = 1e-6;

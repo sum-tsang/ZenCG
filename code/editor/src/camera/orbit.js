@@ -1,3 +1,4 @@
+// Orbit control helper.
 import * as THREE from "three";
 
 // Create Orbit

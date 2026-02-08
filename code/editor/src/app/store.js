@@ -1,3 +1,4 @@
+// Lightweight state store.
 // Create a tiny state container with mutation helpers.
 export function createStore(initialState = {}) {
   const state = { ...initialState };

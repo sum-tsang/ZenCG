@@ -1,3 +1,4 @@
+// Keyboard shortcuts.
 // Detect inputs/textareas/contenteditable targets.
 function isEditableTarget(target) {
   return (
@@ -15,7 +16,13 @@ function isTransformPanelTarget(target) {
 }
 
 // Register global keyboard shortcuts for undo/delete.
-export function setupShortcuts({ store, transformationManager, deleteImportedObject }) {
+export function setupShortcuts({
+  store,
+  transformationManager,
+  deleteImportedObject,
+  undoDelete,
+  hasUndoDelete,
+}) {
   document.addEventListener("keydown", (event) => {
     if (isEditableTarget(event.target) && !isTransformPanelTarget(event.target)) return;
 
@@ -33,7 +40,17 @@ export function setupShortcuts({ store, transformationManager, deleteImportedObj
     if (!isUndo) return;
 
     event.preventDefault();
-    transformationManager.undo();
+    const canUndoDelete = typeof hasUndoDelete === "function" && hasUndoDelete();
+    if (canUndoDelete && store.getState().currentObject === null) {
+      event.preventDefault();
+      undoDelete?.();
+      return;
+    }
+
+    const didUndo = transformationManager.undo();
+    if (!didUndo && typeof undoDelete === "function") {
+      undoDelete();
+    }
   });
 
   document.addEventListener("keydown", (event) => {
