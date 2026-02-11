@@ -103,4 +103,11 @@ export class UndoHistory {
     this.index -= 1;
     return this.stack[this.index];
   }
+
+  // Redo
+  redo() {
+    if (this.index >= this.stack.length - 1) return null;
+    this.index += 1;
+    return this.stack[this.index];
+  }
 }

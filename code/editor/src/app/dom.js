@@ -12,6 +12,7 @@ export function getDomRefs() {
     exportSceneToggle: document.getElementById("export-scene-toggle"),
     toolsToggle: document.getElementById("tools-toggle"),
     panelToggle: document.getElementById("panel-toggle"),
+    historyList: document.getElementById("action-history-list"),
     manualButton: document.getElementById("manual-button"),
     manualModal: document.getElementById("manual-modal"),
     status: document.getElementById("status"),
@@ -19,6 +20,13 @@ export function getDomRefs() {
     libraryImportButton: document.getElementById("library-import"),
     objectList: document.getElementById("object-list"),
     objectListEmpty: document.getElementById("object-list-empty"),
+    undoButton: document.getElementById("undo-button"),
+    redoButton: document.getElementById("redo-button"),
+    recentAction: document.getElementById("recent-action"),
+    footerToolValue: document.getElementById("footer-tool-value"),
+    footerAxisX: document.getElementById("footer-axis-x"),
+    footerAxisY: document.getElementById("footer-axis-y"),
+    footerAxisZ: document.getElementById("footer-axis-z"),
   };
 }
 

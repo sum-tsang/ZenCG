@@ -11,6 +11,10 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
   }
 
   const libraryState = { models: [] };
+  const yieldToMainThread = () =>
+    new Promise((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
 
   // Render a single-message placeholder in the select.
   const setSelectMessage = (message) => {
@@ -97,6 +101,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
         typeof entry.filename === "string" && entry.filename
           ? entry.filename
           : `${label}.obj`;
+      await yieldToMainThread();
       importer.loadFromText(text, filename);
     } catch (error) {
       console.error(error);

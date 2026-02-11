@@ -4,22 +4,40 @@ function clamp(value, min, max) {
 }
 
 export function setupUiLayout() {
-  const toolsIsland = document.getElementById("tools-island");
   const gizmo = document.getElementById("viewport-tools");
-  if (!toolsIsland || !gizmo) return;
+  const toolsIsland = document.getElementById("tools-island");
+  const toolsToggle = document.getElementById("tools-toggle");
+  if (!gizmo && !(toolsIsland && toolsToggle)) return;
 
-  const gap = 12;
   let rafId = 0;
 
   const update = () => {
-    const toolsRect = toolsIsland.getBoundingClientRect();
-    gizmo.style.width = `${Math.round(toolsRect.width)}px`;
+    const rootStyles = getComputedStyle(document.documentElement);
+    const edgeGap = parseFloat(rootStyles.getPropertyValue("--edge-gap"));
+    const islandGap = parseFloat(rootStyles.getPropertyValue("--island-gap"));
+    const toolsWidth = parseFloat(rootStyles.getPropertyValue("--tools-width"));
 
-    const gizmoRect = gizmo.getBoundingClientRect();
-    const top = clamp(toolsRect.top - gizmoRect.height - gap, gap, window.innerHeight - gap);
-    gizmo.style.left = `${Math.round(toolsRect.left)}px`;
-    gizmo.style.top = `${Math.round(top)}px`;
+    const left = Number.isFinite(edgeGap) ? edgeGap : 0;
+    const top = Number.isFinite(islandGap) ? islandGap : 12;
+    const width = Number.isFinite(toolsWidth) ? toolsWidth : 225;
+    const maxWidth = Math.max(140, window.innerWidth - (left * 2));
 
+    if (gizmo) {
+      gizmo.style.left = `${Math.round(left)}px`;
+      gizmo.style.top = `${Math.round(top)}px`;
+      gizmo.style.width = `${Math.round(clamp(width, 140, maxWidth))}px`;
+    }
+
+    // Keep the left toggle centered to the tools island, not the viewport.
+    if (toolsIsland instanceof HTMLElement && toolsToggle instanceof HTMLElement) {
+      const islandRect = toolsIsland.getBoundingClientRect();
+      const centerY = islandRect.top + islandRect.height / 2;
+      if (Number.isFinite(centerY) && islandRect.height > 0) {
+        toolsToggle.style.top = `${Math.round(centerY)}px`;
+        toolsToggle.style.bottom = "auto";
+        toolsToggle.style.transform = "translateY(-50%)";
+      }
+    }
   };
 
   const schedule = () => {
@@ -34,8 +52,12 @@ export function setupUiLayout() {
 
   if ("ResizeObserver" in window) {
     const ro = new ResizeObserver(schedule);
-    ro.observe(toolsIsland);
-    ro.observe(gizmo);
+    if (gizmo) {
+      ro.observe(gizmo);
+    }
+    if (toolsIsland) {
+      ro.observe(toolsIsland);
+    }
   }
 
   schedule();

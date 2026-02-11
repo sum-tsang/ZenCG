@@ -19,6 +19,7 @@ export class TransformationGizmo {
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
     this.isDragging = false;
+    this.dragSource = null; // "mouse" | "keyboard"
     this.dragPlane = new THREE.Plane();
     this.dragPoint = new THREE.Vector3();
     this.lastDragPoint = new THREE.Vector3();
@@ -55,6 +56,7 @@ export class TransformationGizmo {
     this.viewport = null;
     this.axisLength = 6;
     this.desiredScreenSize = 120;
+    this.lastPointerClient = null;
 
     // Interactive axes
     this.axes = {
@@ -430,12 +432,203 @@ export class TransformationGizmo {
     return { axis, handleType, isHitZone, scaleDirection };
   }
 
+  updatePointerClient(event) {
+    if (!event) return;
+    if (!Number.isFinite(event.clientX) || !Number.isFinite(event.clientY)) return;
+    this.lastPointerClient = { x: event.clientX, y: event.clientY };
+  }
+
+  resolvePointerClient(container, pointer = null) {
+    if (pointer && Number.isFinite(pointer.x) && Number.isFinite(pointer.y)) {
+      return pointer;
+    }
+    if (
+      this.lastPointerClient &&
+      Number.isFinite(this.lastPointerClient.x) &&
+      Number.isFinite(this.lastPointerClient.y)
+    ) {
+      return this.lastPointerClient;
+    }
+    const rect = container.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+  }
+
+  beginAxisDrag({
+    axis,
+    handleType = null,
+    scaleDirection = 1,
+    camera,
+    container,
+    clientX,
+    clientY,
+    dragSource = "mouse",
+  }) {
+    if (!this.object || !camera || !container) return false;
+    if (!["x", "y", "z"].includes(axis)) return false;
+
+    const rect = container.getBoundingClientRect();
+    this.mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.mouse, camera);
+
+    this.isDragging = true;
+    this.dragSource = dragSource;
+    this.dragButton = dragSource === "mouse" ? 2 : null;
+    this.axis = axis;
+    this.handleType = handleType;
+
+    // Store initial values
+    this.initialPosition.copy(this.object.position);
+    this.initialRotation.copy(this.object.rotation);
+    this.initialScale.copy(this.object.scale);
+    this.object.getWorldQuaternion(this.initialQuaternion);
+    this.startMouseScreenY = clientY;
+    this.lastMouseScreenY = clientY;
+    this.lastMouseScreenX = clientX;
+
+    // Store initial mouse position for screen-space scaling
+    this.initialMouseScreen.x = clientX - rect.left;
+    this.initialMouseScreen.y = clientY - rect.top;
+
+    // Store initial handle position in world space (for scaling reference)
+    if (this.handleType === "scale" || this.mode === "scale") {
+      const axisVec = this.getAxisVector();
+      const axisLength = 6;
+      const arrowLength = 1.2;
+      const handleLocalPos = axisVec.clone().multiplyScalar(axisLength + arrowLength * 0.6);
+      this.initialHandleWorldPos.copy(handleLocalPos);
+      this.initialHandleWorldPos.applyQuaternion(this.initialQuaternion);
+      this.initialHandleWorldPos.add(this.object.position);
+    }
+
+    // Store initial bounding box size for scaling calculations.
+    const originalScale = this.object.scale.clone();
+    this.object.scale.set(1, 1, 1);
+    const box = new THREE.Box3().setFromObject(this.object);
+    this.initialBoundingBoxSize.copy(box.getSize(new THREE.Vector3()));
+    this.object.scale.copy(originalScale);
+    this.initialScale.copy(originalScale);
+
+    if (this.mode === "translate") {
+      // Cache world axis data for robust axis dragging (no plane degeneracy).
+      this.object.updateMatrixWorld(true);
+      this.object.getWorldPosition(this.dragAxisOriginWorld);
+      this.dragAxisWorld
+        .copy(this.getAxisVector())
+        .applyQuaternion(this.gizmoGroup.quaternion)
+        .normalize();
+      const startT = this.getAxisRayParameter(
+        this.raycaster.ray,
+        this.dragAxisOriginWorld,
+        this.dragAxisWorld
+      );
+      this.dragAxisStartT = Number.isFinite(startT) ? startT : 0;
+    }
+
+    const isScale = this.handleType === "scale" || this.mode === "scale";
+    const isRotate = this.handleType === "rotate" || this.mode === "rotate";
+
+    if (isScale) {
+      this.object.updateMatrixWorld(true);
+      this.object.getWorldPosition(this.scaleAxisOriginWorld);
+      this.scaleAxisWorld
+        .copy(this.getAxisVector())
+        .applyQuaternion(this.gizmoGroup.quaternion)
+        .normalize();
+      const startT = this.getAxisRayParameter(
+        this.raycaster.ray,
+        this.scaleAxisOriginWorld,
+        this.scaleAxisWorld
+      );
+      if (Number.isFinite(startT)) {
+        this.scaleAxisStartT = startT;
+        this.scaleAxisLastT = startT;
+      }
+      this.setScaleAxisScreenDir(camera, container);
+      this.scaleDirection = scaleDirection || 1;
+    }
+
+    // Setup drag plane for rotation/scale.
+    if (isScale) {
+      const cameraDirection = new THREE.Vector3();
+      camera.getWorldDirection(cameraDirection);
+      const normal = cameraDirection.negate();
+
+      const worldPos = new THREE.Vector3();
+      this.object.getWorldPosition(worldPos);
+
+      this.dragPlane.setFromNormalAndCoplanarPoint(normal, worldPos);
+    } else if (isRotate) {
+      const axisWorld = this.getAxisVector()
+        .clone()
+        .applyQuaternion(this.gizmoGroup.quaternion)
+        .normalize();
+      this.rotationAxisWorld.copy(axisWorld);
+
+      this.object.getWorldPosition(this.rotationCenterWorld);
+      this.dragPlane.setFromNormalAndCoplanarPoint(axisWorld, this.rotationCenterWorld);
+    }
+
+    if (isScale || isRotate) {
+      this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
+      this.initialDragPoint.copy(this.lastDragPoint);
+    }
+
+    if (isRotate) {
+      this.object.getWorldQuaternion(this.rotationStartWorldQuat);
+      if (this.object.parent) {
+        this.object.parent.getWorldQuaternion(this.rotationParentWorldQuat);
+      } else {
+        this.rotationParentWorldQuat.identity();
+      }
+      this.rotationStartVector
+        .copy(this.lastDragPoint)
+        .sub(this.rotationCenterWorld)
+        .projectOnPlane(this.rotationAxisWorld)
+        .normalize();
+    }
+
+    return true;
+  }
+
+  startKeyboardAxisDrag(axis, camera, container, pointer = null) {
+    if (!this.object || !camera || !container) return false;
+    const axisKey = typeof axis === "string" ? axis.toLowerCase() : "";
+    if (!["x", "y", "z"].includes(axisKey)) return false;
+
+    if (this.isDragging) {
+      this.onMouseUp();
+    }
+
+    const pointerClient = this.resolvePointerClient(container, pointer);
+    const handleType =
+      this.mode === "rotate" ? "rotate" : this.mode === "scale" ? "scale" : null;
+    return this.beginAxisDrag({
+      axis: axisKey,
+      handleType,
+      scaleDirection: 1,
+      camera,
+      container,
+      clientX: pointerClient.x,
+      clientY: pointerClient.y,
+      dragSource: "keyboard",
+    });
+  }
+
+  isKeyboardDragging() {
+    return this.isDragging && this.dragSource === "keyboard";
+  }
+
   // Begin drag interactions when a handle is clicked.
-  onMouseDown(event, camera, container, forceFreeTranslate = false) {
+  onMouseDown(event, camera, container) {
     // Only right-click (2) for all transform interactions
     if (event.button !== 2) return false;
 
     if (!this.object) return;
+    this.updatePointerClient(event);
 
     const rect = container.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -443,200 +636,35 @@ export class TransformationGizmo {
 
     this.raycaster.setFromCamera(this.mouse, camera);
 
-    // NOTE: Do not start free translate here unconditionally. Free translate
-    // should only begin when the user actually clicks the object itself
-    // (handled later via objectIntersects). This prevents accidental
-    // translations when clicking empty space.
-
-    // For rotate and scale modes, use axis-based interaction
+    // Dragging starts only from explicit gizmo handles.
+    // Translate mode remains axis-constrained via gizmo axes.
     const interactiveObjects = this.getInteractiveObjects();
     const intersects = this.raycaster.intersectObjects(interactiveObjects, true);
 
-    // Also test whether the click hit the current object (for translate mode)
-    const objectIntersects = this.object ? this.raycaster.intersectObject(this.object, true) : [];
     if (intersects.length > 0) {
       const hit = intersects[0].object;
       const resolved = this.resolveHitData(hit);
       if (!resolved.axis) return false;
-
-      this.isDragging = true;
-      this.dragButton = event.button;
-      this.axis = resolved.axis;
-      this.handleType = resolved.handleType;
-
-      // Store initial values
-      this.initialPosition.copy(this.object.position);
-      this.initialRotation.copy(this.object.rotation);
-      this.initialScale.copy(this.object.scale);
-      this.object.getWorldQuaternion(this.initialQuaternion);
-      this.startMouseScreenY = event.clientY;
-      this.lastMouseScreenY = event.clientY;
-      this.lastMouseScreenX = event.clientX;
-      
-      // Store initial mouse position for screen-space scaling
-      const rect = container.getBoundingClientRect();
-      this.initialMouseScreen.x = event.clientX - rect.left;
-      this.initialMouseScreen.y = event.clientY - rect.top;
-      
-      // Store initial handle position in world space (for scaling reference)
-      if (this.handleType === "scale" || this.mode === "scale") {
-        // Get the handle position (at the end of the axis)
-        const axisVec = this.getAxisVector();
-        const axisLength = 6;
-        const arrowLength = 1.2;
-        const handleLocalPos = axisVec.clone().multiplyScalar(axisLength + arrowLength * 0.6);
-        this.initialHandleWorldPos.copy(handleLocalPos);
-        this.initialHandleWorldPos.applyQuaternion(this.initialQuaternion);
-        this.initialHandleWorldPos.add(this.object.position);
-      }
-
-      // Store initial bounding box size for scaling calculations
-      // Calculate with normalized scale to get base size (prevents feedback loop)
-      const originalScale = this.object.scale.clone();
-      this.object.scale.set(1, 1, 1);
-      const box = new THREE.Box3().setFromObject(this.object);
-      this.initialBoundingBoxSize.copy(box.getSize(new THREE.Vector3()));
-      this.object.scale.copy(originalScale); // Restore original scale
-      
-      // CRITICAL: Ensure initial scale is properly stored and won't change
-      // This prevents any feedback loops
-      this.initialScale.x = originalScale.x;
-      this.initialScale.y = originalScale.y;
-      this.initialScale.z = originalScale.z;
-      
-      // CRITICAL: Store initial scale as a deep copy to prevent any modifications
-      // This ensures the initial scale never changes during dragging
-      this.initialScale.x = originalScale.x;
-      this.initialScale.y = originalScale.y;
-      this.initialScale.z = originalScale.z;
-
-      if (this.mode === "translate") {
-        // Cache world axis data for robust axis dragging (no plane degeneracy)
-        this.object.updateMatrixWorld(true);
-        this.object.getWorldPosition(this.dragAxisOriginWorld);
-        this.dragAxisWorld
-          .copy(this.getAxisVector())
-          .applyQuaternion(this.gizmoGroup.quaternion)
-          .normalize();
-        const startT = this.getAxisRayParameter(
-          this.raycaster.ray,
-          this.dragAxisOriginWorld,
-          this.dragAxisWorld
-        );
-        this.dragAxisStartT = Number.isFinite(startT) ? startT : 0;
-      }
-
-      const isScale = this.handleType === "scale" || this.mode === "scale";
-      const isRotate = this.handleType === "rotate" || this.mode === "rotate";
-
-      if (isScale) {
-        this.object.updateMatrixWorld(true);
-        this.object.getWorldPosition(this.scaleAxisOriginWorld);
-        this.scaleAxisWorld
-          .copy(this.getAxisVector())
-          .applyQuaternion(this.gizmoGroup.quaternion)
-          .normalize();
-        const startT = this.getAxisRayParameter(
-          this.raycaster.ray,
-          this.scaleAxisOriginWorld,
-          this.scaleAxisWorld
-        );
-        if (Number.isFinite(startT)) {
-          this.scaleAxisStartT = startT;
-          this.scaleAxisLastT = startT;
-        }
-        this.setScaleAxisScreenDir(camera, container);
-        
-        // For asymmetric scaling, use the direction from the clicked handle
-        // resolved.scaleDirection is 1 for positive axis handles, -1 for negative
-        this.scaleDirection = resolved.scaleDirection || 1;
-      }
-
-      // Setup drag plane for rotation/scale
-      // For scaling, use a plane perpendicular to camera view so mouse movement
-      // projects naturally onto the axis direction.
-      if (isScale) {
-        // Use camera-facing plane - this allows the handle to follow mouse direction
-        const cameraDirection = new THREE.Vector3();
-        camera.getWorldDirection(cameraDirection);
-        const normal = cameraDirection.negate();
-
-        const worldPos = new THREE.Vector3();
-        this.object.getWorldPosition(worldPos);
-
-        this.dragPlane.setFromNormalAndCoplanarPoint(normal, worldPos);
-      } else if (isRotate) {
-        // For rotation, use plane perpendicular to axis in world space
-        const axisWorld = this.getAxisVector()
-          .clone()
-          .applyQuaternion(this.gizmoGroup.quaternion)
-          .normalize();
-        this.rotationAxisWorld.copy(axisWorld);
-
-        this.object.getWorldPosition(this.rotationCenterWorld);
-        this.dragPlane.setFromNormalAndCoplanarPoint(axisWorld, this.rotationCenterWorld);
-      }
-
-      if (isScale || isRotate) {
-        // Get initial drag point
-        this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
-        this.initialDragPoint.copy(this.lastDragPoint);
-      }
-
-      if (isRotate) {
-        this.object.getWorldQuaternion(this.rotationStartWorldQuat);
-        if (this.object.parent) {
-          this.object.parent.getWorldQuaternion(this.rotationParentWorldQuat);
-        } else {
-          this.rotationParentWorldQuat.identity();
-        }
-        this.rotationStartVector
-          .copy(this.lastDragPoint)
-          .sub(this.rotationCenterWorld)
-          .projectOnPlane(this.rotationAxisWorld)
-          .normalize();
-      }
-
-      return true;
+      return this.beginAxisDrag({
+        axis: resolved.axis,
+        handleType: resolved.handleType,
+        scaleDirection: resolved.scaleDirection || 1,
+        camera,
+        container,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        dragSource: "mouse",
+      });
     }
-
-      // If in translate mode, only start free translation when clicking on the object itself
-      // or when explicitly forced (e.g., clicking the selection outline box)
-      if (this.mode === "translate" && (objectIntersects.length > 0 || forceFreeTranslate)) {
-        // Create a plane at the object's position facing the camera
-        const cameraDirection = new THREE.Vector3();
-        camera.getWorldDirection(cameraDirection);
-        const normal = cameraDirection.negate();
-
-        const worldPos = new THREE.Vector3();
-        this.object.getWorldPosition(worldPos);
-        this.dragPlane.setFromNormalAndCoplanarPoint(normal, worldPos);
-
-        this.isDragging = true;
-        this.dragButton = event.button;
-        this.axis = "free"; // Free movement in translate mode
-
-        // Store initial values
-        this.initialPosition.copy(this.object.position);
-        this.initialRotation.copy(this.object.rotation);
-        this.initialScale.copy(this.object.scale);
-        this.startMouseScreenY = event.clientY;
-        this.lastMouseScreenY = event.clientY;
-        this.lastMouseScreenX = event.clientX;
-
-        // Get initial drag point
-        this.raycaster.ray.intersectPlane(this.dragPlane, this.lastDragPoint);
-
-        return true;
-      }
 
     return false;
   }
 
   // Update transformations while dragging.
   onMouseMove(event, camera, container) {
+    this.updatePointerClient(event);
     if (!this.isDragging || !this.object || !this.axis) return;
-    if (event.buttons !== undefined) {
+    if (event.buttons !== undefined && this.dragSource !== "keyboard") {
       const rightDown = (event.buttons & 2) !== 0;
       if (!rightDown) {
         this.onMouseUp();
@@ -652,26 +680,8 @@ export class TransformationGizmo {
     let didUpdateDragPoint = false;
 
     if (this.mode === "translate") {
-      if (this.axis === "free") {
-        this.raycaster.ray.intersectPlane(this.dragPlane, this.dragPoint);
-        const delta = new THREE.Vector3().subVectors(this.dragPoint, this.lastDragPoint);
-        didUpdateDragPoint = true;
-        // Free movement - apply world-space delta to the object's local position
-        // Ensure matrices are current so world/local conversions are accurate
-        if (this.object.parent) this.object.parent.updateMatrixWorld(true);
-        this.object.updateMatrixWorld(true);
-
-        const worldPos = new THREE.Vector3();
-        this.object.getWorldPosition(worldPos);
-        worldPos.add(delta);
-        if (this.object.parent) {
-          this.object.parent.worldToLocal(worldPos);
-        }
-        this.object.position.copy(worldPos);
-      } else {
-        // Constrained movement along axis using ray/axis closest points
-        this.handleTranslate(this.raycaster.ray);
-      }
+      // Translate mode is axis-constrained only.
+      this.handleTranslate(this.raycaster.ray);
     } else {
       this.raycaster.ray.intersectPlane(this.dragPlane, this.dragPoint);
       didUpdateDragPoint = true;
@@ -911,7 +921,26 @@ export class TransformationGizmo {
       this.axis = null;
       this.handleType = null;
       this.dragButton = null;
+      this.dragSource = null;
     }
+  }
+
+  // Cancel active keyboard drag and restore the initial transform.
+  cancelKeyboardDrag() {
+    if (!this.isKeyboardDragging() || !this.object) return false;
+    this.object.position.copy(this.initialPosition);
+    this.object.rotation.copy(this.initialRotation);
+    this.object.scale.copy(this.initialScale);
+    this.updateGizmoPosition();
+    if (this.listeners.onTransform) {
+      this.listeners.onTransform({
+        position: this.object.position.clone(),
+        rotation: this.object.rotation.clone(),
+        scale: this.object.scale.clone(),
+      });
+    }
+    this.onMouseUp();
+    return true;
   }
 
   // Register a transform event callback.

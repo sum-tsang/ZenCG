@@ -16,7 +16,7 @@ export function createSceneContext(canvas) {
   const { camera, target } = createCamera();
 
   const gridSize = 200;
-  const gridDivisions = 200;
+  const gridDivisions = 100;
   const grid = new THREE.GridHelper(gridSize, gridDivisions, 0x545454, 0x545454);
   grid.material.transparent = true;
   grid.material.opacity = 0.5;

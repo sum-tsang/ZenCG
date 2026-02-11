@@ -3,6 +3,7 @@ import { TransformationGizmo } from "./gizmo.js";
 import { TransformationPanel } from "./panel.js";
 import * as THREE from "three";
 import { splitMeshByBox } from "../modelComponents/splitMeshByBox.js";
+import { combineModels } from "../modelCombination/combineModels.js";
 import {
   UndoHistory,
   applyTransformSnapshot,
@@ -43,6 +44,7 @@ export class TransformationManager {
     this.initializedObjects = new WeakSet();
     this.initialSnapshots = new WeakMap();
     this.wasDraggingGizmo = false;
+    this.lastPointerClient = null;
     this.transformListeners = new Set();
     this.selectableRoot = options.selectableRoot ?? null;
     this.resolveSelection =
@@ -55,8 +57,12 @@ export class TransformationManager {
         : null;
     this.onSplit =
       typeof options.onSplit === "function" ? options.onSplit : null;
+    this.onCombine =
+      typeof options.onCombine === "function" ? options.onCombine : null;
     this.onHistoryChange =
       typeof options.onHistoryChange === "function" ? options.onHistoryChange : null;
+    this.onToolStateChange =
+      typeof options.onToolStateChange === "function" ? options.onToolStateChange : null;
 
     if (Array.isArray(options.initialHistory)) {
       this.actionHistory.setEntries(options.initialHistory);
@@ -65,11 +71,12 @@ export class TransformationManager {
     // Initialize gizmo and panel
     this.gizmo = new TransformationGizmo(scene);
     this.panel = new TransformationPanel(panelContainerId);
-    this.panel.renderHistory(this.actionHistory.entries());
 
     // Raycaster for model selection
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
+    this.boxDragIntersectPoint = new THREE.Vector3();
+    this.boxDragDelta = new THREE.Vector3();
 
     // Wire up connections
     this.gizmo.onTransform((transform) => {
@@ -109,12 +116,22 @@ export class TransformationManager {
       this.cancelBoxSelection();
     });
 
+    // Wire combine button from panel
+    this.panel.onCombine(() => {
+      this.combineSelectedModels();
+    });
+    this.panel.onModeChange((mode) => {
+      this.gizmo.setMode(mode);
+      this.notifyToolStateChange();
+    });
+
     // Mouse event handlers
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
 
     this.setupEventListeners();
+    this.notifyToolStateChange();
   }
 
   // NOTE: split logic moved to modelComponents/splitMeshByBox.js
@@ -128,6 +145,46 @@ export class TransformationManager {
     document.addEventListener("pointerup", (event) => self.onMouseUp(event), false);
     // Prevent the browser context menu so drag interactions aren't interrupted.
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
+
+  // Return ray intersections for selectable scene content.
+  getSelectableIntersections() {
+    if (this.selectableRoot) {
+      return this.raycaster.intersectObject(this.selectableRoot, true);
+    }
+
+    const roots = [];
+    this.scene.children.forEach((child) => {
+      if (!child) return;
+      if (child.name === "TransformationGizmo") return;
+      roots.push(child);
+    });
+
+    if (!roots.length) return [];
+    return this.raycaster.intersectObjects(roots, true);
+  }
+
+  // Resolve the first valid selectable mesh hit.
+  resolveSelectableHit(intersections) {
+    if (!Array.isArray(intersections) || intersections.length === 0) return null;
+
+    for (let index = 0; index < intersections.length; index += 1) {
+      const hit = intersections[index];
+      const hitObject = hit?.object;
+      if (!(hitObject instanceof THREE.Mesh)) continue;
+      if (
+        hitObject.name === "TransformationGizmo" ||
+        hitObject.parent?.name?.includes("TransformationGizmo")
+      ) {
+        continue;
+      }
+
+      const resolved = this.resolveSelection ? this.resolveSelection(hitObject) : hitObject;
+      if (!resolved) continue;
+      return { hit, hitObject, resolved };
+    }
+
+    return null;
   }
 
   // Start a box selection workflow for component splitting.
@@ -179,6 +236,7 @@ export class TransformationManager {
     const cancelBtn = this.panel.container.querySelector('.cancel-split-btn');
     updateSplitButtonContent(btn, 'Confirm Component');
     if (cancelBtn) cancelBtn.style.display = 'inline-block';
+    this.panel.setCombineEnabled(false);
   }
 
   // Create 6 drag handles for the selection box faces
@@ -346,6 +404,7 @@ export class TransformationManager {
     updateSplitButtonContent(btn, 'Create Component', 'click mesh');
     if (cancelBtn) cancelBtn.style.display = 'none';
     if (modeButtons) modeButtons.style.display = '';
+    this.panel.setCombineEnabled(!this.boxSelecting && this.selectedObjects.length > 1);
   }
 
   // Cancel box selection and restore gizmo state.
@@ -373,6 +432,7 @@ export class TransformationManager {
     updateSplitButtonContent(btn2, 'Create Component', 'click mesh');
     if (cancelBtn2) cancelBtn2.style.display = 'none';
     if (modeButtons2) modeButtons2.style.display = '';
+    this.panel.setCombineEnabled(!this.boxSelecting && this.selectedObjects.length > 1);
     // Restore gizmo target
     if (this.selectedObject) {
       this.gizmo.setObject(this.selectedObject);
@@ -385,6 +445,11 @@ export class TransformationManager {
   // Handle pointer down events for selection/dragging.
   onMouseDown(event) {
     if (!this.camera) return;
+    this.lastPointerClient = { x: event.clientX, y: event.clientY };
+
+    if (this.gizmo?.isKeyboardDragging?.()) {
+      this.finishAxisShortcut();
+    }
 
     // During box selection mode, only right-click (2) can drag handles
     if (this.boxSelecting) {
@@ -431,27 +496,8 @@ export class TransformationManager {
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    const selectableObjects = [];
-    if (this.selectableRoot) {
-      this.selectableRoot.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          selectableObjects.push(child);
-        }
-      });
-    } else {
-      // Get all meshes in the scene except the gizmo
-      this.scene.traverse((child) => {
-        if (
-          child instanceof THREE.Mesh &&
-          child.name !== "TransformationGizmo" &&
-          !child.parent?.name?.includes("TransformationGizmo")
-        ) {
-          selectableObjects.push(child);
-        }
-      });
-    }
-
-    const intersects = this.raycaster.intersectObjects(selectableObjects);
+    const intersects = this.getSelectableIntersections();
+    const selectableHit = this.resolveSelectableHit(intersects);
 
     // Decide whether the gizmo should handle the click before selection.
     const gizmoHit = this.gizmo?.getHitInfo
@@ -459,14 +505,15 @@ export class TransformationManager {
       : null;
     let allowGizmo = false;
     if (gizmoHit) {
-      if (intersects.length === 0) {
+      const isVisibleHandle = !gizmoHit.resolved.isHitZone;
+      if (isVisibleHandle) {
+        allowGizmo = true;
+      } else if (!selectableHit) {
         allowGizmo = true;
       } else {
-        const hitObject = intersects[0].object;
-        const resolved = this.resolveSelection ? this.resolveSelection(hitObject) : hitObject;
-        const isDifferentObject = resolved && resolved !== this.selectedObject;
-        const gizmoCloser = gizmoHit.hit.distance <= intersects[0].distance - 1e-4;
-        allowGizmo = gizmoCloser && !(gizmoHit.resolved.isHitZone && isDifferentObject);
+        const isDifferentObject = selectableHit.resolved !== this.selectedObject;
+        const gizmoCloser = gizmoHit.hit.distance <= selectableHit.hit.distance - 1e-4;
+        allowGizmo = gizmoCloser && !isDifferentObject;
       }
     }
 
@@ -474,6 +521,7 @@ export class TransformationManager {
       const gizmoHandled = this.gizmo.onMouseDown(event, this.camera, this.canvas);
       if (gizmoHandled) {
         this.wasDraggingGizmo = true;
+        this.notifyToolStateChange();
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
@@ -481,38 +529,9 @@ export class TransformationManager {
     }
 
     let selectedObject = null;
-    if (intersects.length > 0) {
-      const hit = intersects[0].object;
-      const resolved = this.resolveSelection ? this.resolveSelection(hit) : hit;
-      if (resolved) {
-        this.toggleSelection(resolved);
-        selectedObject = this.selectedObject;
-      }
-    }
-
-    // If the user clicked inside the selection bounding box (yellow outline)
-    // but didn't hit actual geometry, treat that as a selection hit so the
-    // user can start free translation by dragging the outline.
-    if (!selectedObject && this.selectedObject) {
-      // Ensure matrices are up-to-date for accurate bounds
-      this.selectedObject.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(this.selectedObject);
-      const hitPoint = this.raycaster.ray.intersectBox(box, new THREE.Vector3());
-      if (hitPoint) {
-        selectedObject = this.selectedObject;
-      }
-    }
-
-    // Only allow forcing a free-translate on the selected model when
-    // we're NOT currently editing a box selection. While a box selection
-    // is active we must prevent transforming the underlying model and
-    // only operate on the selection box itself.
-    if (!this.boxSelecting && selectedObject && this.gizmo?.mode === "translate") {
-      // If click was on the bounding box rather than geometry, force free translate
-      const force = selectedObject === this.selectedObject && intersects.length === 0;
-      if (this.gizmo.onMouseDown(event, this.camera, this.canvas, force)) {
-        this.wasDraggingGizmo = true;
-      }
+    if (selectableHit) {
+      this.toggleSelection(selectableHit.resolved);
+      selectedObject = this.selectedObject;
     }
 
     if (!selectedObject && !this.wasDraggingGizmo) {
@@ -530,6 +549,7 @@ export class TransformationManager {
   // Handle pointer move events for hover/drag updates.
   onMouseMove(event) {
     if (!this.camera) return;
+    this.lastPointerClient = { x: event.clientX, y: event.clientY };
 
     // Handle box handle dragging (asymmetric resize)
     if (this.draggingBoxHandle && this.boxMesh && this.boxHandleDragPlane) {
@@ -538,13 +558,13 @@ export class TransformationManager {
       this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       this.raycaster.setFromCamera(this.mouse, this.camera);
       
-      const intersectPoint = new THREE.Vector3();
+      const intersectPoint = this.boxDragIntersectPoint;
       if (this.raycaster.ray.intersectPlane(this.boxHandleDragPlane, intersectPoint)) {
         const axis = this.draggingBoxHandle.userData.axis;
         const dir = this.draggingBoxHandle.userData.direction;
         
         // Calculate movement along the handle's axis
-        const delta = intersectPoint.clone().sub(this.boxHandleLastPoint);
+        const delta = this.boxDragDelta.subVectors(intersectPoint, this.boxHandleLastPoint);
         let axisDelta = 0;
         if (axis === 'x') axisDelta = delta.x;
         else if (axis === 'y') axisDelta = delta.y;
@@ -597,6 +617,7 @@ export class TransformationManager {
     }
     
     this.gizmo.onMouseUp();
+    this.notifyToolStateChange();
     if (this.wasDraggingGizmo) {
       this.recordSnapshot(this.gizmo.mode);
       this.wasDraggingGizmo = false;
@@ -656,8 +677,10 @@ export class TransformationManager {
       if (this.selectedObject) {
         this.cacheInitialSnapshot(this.selectedObject);
       }
-      this.panel.renderHistory(this.actionHistory.entries());
+      this.notifyHistoryChange();
     }
+
+    this.panel.setCombineEnabled(!this.boxSelecting && this.selectedObjects.length > 1);
 
     // Always notify of selection (for material panel, etc.)
     if (this.onSelectionChange) {
@@ -666,6 +689,31 @@ export class TransformationManager {
     if (this.onMultiSelectionChange) {
       this.onMultiSelectionChange([...this.selectedObjects]);
     }
+  }
+
+  // Combine selected imported objects into a single group.
+  combineSelectedModels() {
+    if (this.boxSelecting) return false;
+    if (!Array.isArray(this.selectedObjects) || this.selectedObjects.length < 2) return false;
+
+    const targetParent = this.selectableRoot || this.selectedObjects[0]?.parent || this.scene;
+    const result = combineModels(this.selectedObjects, targetParent);
+    if (!result?.combined) return false;
+
+    if (this.onCombine) {
+      this.onCombine({
+        combined: result.combined,
+        originals: result.originals,
+      });
+    }
+
+    this.selectObject(result.combined);
+    this.gizmo.setObject(result.combined);
+    this.panel.setObject(result.combined);
+    this.panel.updatePanelFromObject();
+    this.gizmo.updateGizmoPosition();
+    this.recordSnapshot("combine");
+    return true;
   }
 
 
@@ -677,8 +725,66 @@ export class TransformationManager {
 
   // Set the current gizmo mode.
   setMode(mode) {
-    this.gizmo.setMode(mode);
+    if (this.gizmo?.isDragging) return;
     this.panel.setMode(mode);
+  }
+
+  // Start keyboard-driven axis transform for the active mode.
+  startAxisShortcut(axis) {
+    if (this.boxSelecting) return false;
+    if (!this.selectedObject || !this.camera) return false;
+    const axisKey = typeof axis === "string" ? axis.toLowerCase() : "";
+    if (!["x", "y", "z"].includes(axisKey)) return false;
+
+    if (this.gizmo?.isKeyboardDragging?.()) {
+      this.finishAxisShortcut();
+    }
+
+    const started = this.gizmo.startKeyboardAxisDrag(
+      axisKey,
+      this.camera,
+      this.canvas,
+      this.lastPointerClient
+    );
+    if (!started) return false;
+    this.wasDraggingGizmo = true;
+    this.notifyToolStateChange();
+    return true;
+  }
+
+  // Commit active keyboard-driven axis transform.
+  finishAxisShortcut() {
+    if (!this.gizmo?.isKeyboardDragging?.()) return false;
+    this.gizmo.onMouseUp();
+    if (this.wasDraggingGizmo) {
+      this.recordSnapshot(this.gizmo.mode);
+      this.wasDraggingGizmo = false;
+    }
+    this.notifyToolStateChange();
+    return true;
+  }
+
+  // Cancel active keyboard-driven axis transform and restore initial transform.
+  cancelAxisShortcut() {
+    if (!this.gizmo?.isKeyboardDragging?.()) return false;
+    const canceled = this.gizmo.cancelKeyboardDrag?.();
+    this.wasDraggingGizmo = false;
+    this.notifyToolStateChange();
+    return Boolean(canceled);
+  }
+
+  // Return current tool state for external UI indicators.
+  getToolState() {
+    return {
+      mode: this.panel?.getCurrentMode?.() || this.gizmo?.mode || "translate",
+      axis: this.gizmo?.axis || null,
+    };
+  }
+
+  // Notify listeners that the visible tool state changed.
+  notifyToolStateChange() {
+    if (!this.onToolStateChange) return;
+    this.onToolStateChange(this.getToolState());
   }
 
   // Reset undo history to the current object transform.
@@ -686,7 +792,6 @@ export class TransformationManager {
     if (!this.selectedObject) return;
     this.undoHistory.clear();
     this.actionHistory.clear();
-    this.panel.renderHistory([]);
     this.notifyHistoryChange();
     this.recordSnapshot();
     this.initializedObjects.add(this.selectedObject);
@@ -733,12 +838,33 @@ export class TransformationManager {
     return true;
   }
 
+  // Redo the last undone transform action.
+  redo() {
+    const snapshot = this.undoHistory.redo();
+    if (!snapshot) return false;
+    if (!applyTransformSnapshot(snapshot)) return false;
+    if (snapshot.object !== this.selectedObject) {
+      this.selectObject(snapshot.object);
+    }
+    this.gizmo.updateGizmoPosition();
+    this.panel.updatePanelFromObject();
+    this.logAction("redo");
+    if (this.selectedObject) {
+      this.emitTransform({
+        position: this.selectedObject.position.clone(),
+        rotation: this.selectedObject.quaternion.clone(),
+        scale: this.selectedObject.scale.clone(),
+        source: "redo",
+      });
+    }
+    return true;
+  }
+
   // Append a user-facing action label to history.
   logAction(action) {
     const label = this.getActionLabel(action);
     if (!label) return;
     this.actionHistory.record(label);
-    this.panel.renderHistory(this.actionHistory.entries());
     this.notifyHistoryChange();
   }
 
@@ -762,8 +888,12 @@ export class TransformationManager {
         return "Reset";
       case "undo":
         return "Undo";
+      case "redo":
+        return "Redo";
       case "split":
         return "Create Component";
+      case "combine":
+        return "Combine Models";
       default:
         return "Transform";
     }

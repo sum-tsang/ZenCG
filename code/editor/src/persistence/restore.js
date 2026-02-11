@@ -11,8 +11,15 @@ export function restoreStoredImports({
 }) {
   loadStoredImports().then(async (restored) => {
     if (restored && importer?.loadFromText) {
-      const entries = Array.isArray(restored) ? restored : [];
+      const entries = Array.isArray(restored)
+        ? restored.filter(
+            (entry) => entry && typeof entry.text === "string" && entry.text.trim().length > 0
+          )
+        : [];
       if (entries.length === 0) {
+        if (Array.isArray(restored) && restored.length > 0) {
+          setStatus("Saved models are invalid and could not be restored.");
+        }
         return;
       }
       setStatus(

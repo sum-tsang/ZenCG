@@ -51,7 +51,6 @@ export class TransformationPanel {
     this.transformObject = null;
     this.isUpdatingFromGizmo = false;
     this.currentMode = "translate";
-    this.historyList = null;
 
     // State tracking
     this.state = {
@@ -64,6 +63,8 @@ export class TransformationPanel {
       onTransform: null,
       onSplitRequest: null,
       onCancelSplit: null,
+      onCombineRequest: null,
+      onModeChange: null,
     };
 
     this.initializeUI();
@@ -79,8 +80,8 @@ export class TransformationPanel {
     panel.id = "transformation-panel";
     panel.className = "transform-panel";
 
-    // Mode selector
-    const modeGroup = this.createSection("Mode");
+    // Tools selector
+    const modeGroup = this.createSection("Tools");
     const modeButtons = document.createElement("div");
     modeButtons.className = "mode-buttons";
 
@@ -135,6 +136,20 @@ export class TransformationPanel {
       if (this.listeners.onCancelSplit) this.listeners.onCancelSplit();
     });
 
+    // Combine models button (uses current multi-selection)
+    const combineRow = document.createElement("div");
+    combineRow.className = "split-row";
+    const combineBtn = document.createElement("button");
+    combineBtn.type = "button";
+    combineBtn.className = "combine-btn";
+    combineBtn.textContent = "Combine Models";
+    combineBtn.disabled = true;
+    combineRow.appendChild(combineBtn);
+    panel.appendChild(combineRow);
+    combineBtn.addEventListener("click", () => {
+      if (this.listeners.onCombineRequest) this.listeners.onCombineRequest();
+    });
+
     const unitIndicator = document.createElement("p");
     unitIndicator.className = "unit-indicator";
     unitIndicator.textContent = "Units: m";
@@ -163,24 +178,7 @@ export class TransformationPanel {
     resetSection.appendChild(resetBtn);
     panel.appendChild(resetSection);
 
-    const externalHistory = document.getElementById("action-history-list");
-    if (externalHistory instanceof HTMLUListElement) {
-      this.historyList = externalHistory;
-    } else {
-      // History section (fallback)
-      const historySection = this.createSection("History");
-      historySection.classList.add("history-section");
-      const historyScroll = document.createElement("div");
-      historyScroll.className = "history-scroll";
-      this.historyList = document.createElement("ul");
-      this.historyList.className = "history-list";
-      historyScroll.appendChild(this.historyList);
-      historySection.appendChild(historyScroll);
-      panel.appendChild(historySection);
-    }
-
     this.container.appendChild(panel);
-    this.renderHistory([]);
     this.setupListeners();
   }
 
@@ -300,6 +298,10 @@ export class TransformationPanel {
     if (this.gizmo) {
       this.gizmo.setMode(mode);
     }
+
+    if (this.listeners.onModeChange) {
+      this.listeners.onModeChange(mode);
+    }
   }
 
   // Handle numeric input changes and emit transforms.
@@ -387,6 +389,18 @@ export class TransformationPanel {
   // Register a cancel split callback.
   onCancelSplit(callback) {
     this.listeners.onCancelSplit = callback;
+  }
+
+  // Register a combine models callback.
+  onCombine(callback) {
+    this.listeners.onCombineRequest = callback;
+  }
+
+  // Enable or disable the combine action.
+  setCombineEnabled(enabled) {
+    const combineButton = this.container.querySelector(".combine-btn");
+    if (!(combineButton instanceof HTMLButtonElement)) return;
+    combineButton.disabled = !enabled;
   }
 
   // Refresh input values from the bound object.
@@ -485,30 +499,14 @@ export class TransformationPanel {
     this.listeners.onTransform = callback;
   }
 
+  // Register a mode change callback.
+  onModeChange(callback) {
+    this.listeners.onModeChange = callback;
+  }
+
   // Return the current transform mode.
   getCurrentMode() {
     return this.currentMode;
-  }
-
-  // Render the action history list.
-  renderHistory(entries = []) {
-    if (!this.historyList) return;
-    this.historyList.innerHTML = "";
-
-    if (!entries.length) {
-      const empty = document.createElement("li");
-      empty.className = "history-item history-empty";
-      empty.textContent = "No actions yet";
-      this.historyList.appendChild(empty);
-      return;
-    }
-
-    entries.forEach((entry) => {
-      const item = document.createElement("li");
-      item.className = "history-item";
-      item.textContent = entry;
-      this.historyList.appendChild(item);
-    });
   }
 
   // Update inputs from gizmo-driven transforms.

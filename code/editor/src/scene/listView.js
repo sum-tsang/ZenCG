@@ -5,7 +5,6 @@ export function renderObjectList({ dom, state, onSelect, onDelete, onToggleSelec
     return;
   }
 
-  dom.objectList.innerHTML = "";
   const hasObjects = state.importedObjects.length > 0;
 
   if (dom.objectListEmpty instanceof HTMLElement) {
@@ -13,8 +12,14 @@ export function renderObjectList({ dom, state, onSelect, onDelete, onToggleSelec
   }
 
   if (!hasObjects) {
+    dom.objectList.replaceChildren();
     return;
   }
+
+  const selectedSet = Array.isArray(state.selectedObjects)
+    ? new Set(state.selectedObjects)
+    : null;
+  const fragment = document.createDocumentFragment();
 
   state.importedObjects.forEach((object, index) => {
     const item = document.createElement("li");
@@ -33,8 +38,7 @@ export function renderObjectList({ dom, state, onSelect, onDelete, onToggleSelec
       button.classList.add("active");
     }
     if (
-      Array.isArray(state.selectedObjects) &&
-      state.selectedObjects.includes(object) &&
+      selectedSet?.has(object) &&
       object !== state.currentObject
     ) {
       row.classList.add("multi-selected");
@@ -56,6 +60,8 @@ export function renderObjectList({ dom, state, onSelect, onDelete, onToggleSelec
     });
     row.append(button, removeButton);
     item.append(row);
-    dom.objectList.append(item);
+    fragment.append(item);
   });
+
+  dom.objectList.replaceChildren(fragment);
 }

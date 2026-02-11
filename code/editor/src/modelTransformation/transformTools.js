@@ -18,6 +18,7 @@ export function setupTransformTools({
   onSelectObject,
   initialHistory,
   onHistoryChange,
+  onToolStateChange,
   actionHistoryLimit,
 }) {
   const manager = new TransformationManager(
@@ -28,6 +29,7 @@ export function setupTransformTools({
       selectableRoot: importRoot,
       initialHistory,
       onHistoryChange,
+      onToolStateChange,
       actionHistoryLimit,
       resolveSelection: (object) => findImportedRoot(importRoot, object),
       onSelectionChange: (object) => {
@@ -84,6 +86,41 @@ export function setupTransformTools({
         // Re-render the object list to show both parts
         renderObjectList();
         updateSelectionOutline(selectionHelper, inside);
+        scheduleSave();
+      },
+      onCombine: ({ combined, originals }) => {
+        const selected = Array.isArray(originals) ? originals : [];
+        if (!combined || selected.length < 2) return;
+
+        store.mutate((state) => {
+          const selectedSet = new Set(selected);
+          const nextImported = [];
+          const nextStored = [];
+
+          state.importedObjects.forEach((object, index) => {
+            if (selectedSet.has(object)) return;
+            nextImported.push(object);
+            if (index < state.storedImports.length) {
+              nextStored.push(state.storedImports[index]);
+            }
+          });
+
+          nextImported.push(combined);
+          nextStored.push({
+            name: combined.name || "combined_model",
+            text: "",
+            transform: null,
+            isCombinedPart: true,
+          });
+
+          state.importedObjects = nextImported;
+          state.storedImports = nextStored;
+          state.currentObject = combined;
+          state.selectedObjects = [combined];
+        });
+
+        renderObjectList();
+        updateSelectionOutline(selectionHelper, combined);
         scheduleSave();
       },
     }
