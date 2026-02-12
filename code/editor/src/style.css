@@ -16,6 +16,8 @@
   --edge-toggle-size: 22px;
   --edge-toggle-offset: 10px;
   --footer-height: 56px;
+  --footer-left-clearance: calc(var(--tools-width) + var(--island-gap));
+  --footer-right-clearance: calc(var(--panel-width) + var(--island-gap));
 
   --glass-blur: 12px;
   --glass-saturate: 140%;
@@ -265,12 +267,18 @@ body {
 /* Bottom footer for undo/redo and latest action text. */
 .undo-footer {
   position: fixed;
-  left: 50%;
+  left: var(--footer-left-clearance);
+  right: var(--footer-right-clearance);
   bottom: var(--island-gap);
-  transform: translateX(-50%);
-  width: min(66vw, calc(100vw - (var(--edge-gap) * 2)));
+  width: min(
+    66vw,
+    840px,
+    calc(100vw - var(--footer-left-clearance) - var(--footer-right-clearance))
+  );
   height: var(--footer-height);
   padding: 8px 18px;
+  margin-left: auto;
+  margin-right: auto;
   border-radius: 18px;
   background-color: var(--glass-bg);
   box-shadow: var(--glass-shadow-soft);
@@ -388,10 +396,12 @@ body {
 /* Body classes are toggled by the collapse buttons. */
 body.left-panel-collapsed {
   --tools-shift-x: -100%;
+  --footer-left-clearance: var(--edge-gap);
 }
 
 body.right-panel-collapsed {
   --panel-shift-x: 100%;
+  --footer-right-clearance: var(--edge-gap);
 }
 
 /* Panel typography and top navigation row. */
@@ -1469,6 +1479,36 @@ body.manual-open .manual-card {
     --tools-width: 200px;
     --island-gap: 12px;
   }
+
+  .undo-footer {
+    padding: 8px 12px;
+  }
+
+  .undo-footer-content {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: start;
+    gap: 8px 12px;
+  }
+
+  .undo-footer-tool {
+    grid-column: 1;
+    grid-row: 1;
+    white-space: normal;
+  }
+
+  .undo-footer-actions {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .undo-footer-recent {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    white-space: normal;
+  }
 }
 
 @media (max-width: 1180px) {
@@ -1477,6 +1517,20 @@ body.manual-open .manual-card {
     --tools-width: 190px;
     --island-gap: 10px;
     --island-size: 40px;
+  }
+
+  .undo-footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .undo-footer-actions,
+  .undo-footer-tool,
+  .undo-footer-recent {
+    justify-content: center;
+    justify-self: stretch;
   }
 }
 
