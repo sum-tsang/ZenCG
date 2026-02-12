@@ -5,6 +5,21 @@
     "objPath": "./assets/models/cube.obj"
   },
   {
+    "id": "sphere",
+    "name": "Sphere",
+    "objPath": "./assets/models/sphere.obj"
+  },
+  {
+    "id": "torus",
+    "name": "Torus",
+    "objPath": "./assets/models/torus.obj"
+  },
+  {
+    "id": "plane",
+    "name": "Plane",
+    "objPath": "./assets/models/plane.obj"
+  },
+  {
     "id": "base_mesh",
     "name": "Base Mesh",
     "objPath": "./assets/models/base_mesh.obj"
