@@ -227,10 +227,6 @@ export class TransformationManager {
     // Hide the regular gizmo during box selection
     this.gizmo.hide();
 
-    // Hide mode buttons and show only split controls
-    const modeButtons = this.panel.container.querySelector('.mode-buttons');
-    if (modeButtons) modeButtons.style.display = 'none';
-
     // Update panel buttons for box selection mode
     const btn = this.panel.container.querySelector('.split-btn');
     const cancelBtn = this.panel.container.querySelector('.cancel-split-btn');
@@ -400,10 +396,8 @@ export class TransformationManager {
 
     const btn = this.panel.container.querySelector('.split-btn');
     const cancelBtn = this.panel.container.querySelector('.cancel-split-btn');
-    const modeButtons = this.panel.container.querySelector('.mode-buttons');
     updateSplitButtonContent(btn, 'Create Component', 'click mesh');
     if (cancelBtn) cancelBtn.style.display = 'none';
-    if (modeButtons) modeButtons.style.display = '';
     this.panel.setCombineEnabled(!this.boxSelecting && this.selectedObjects.length > 1);
   }
 
@@ -428,10 +422,8 @@ export class TransformationManager {
     
     const btn2 = this.panel.container.querySelector('.split-btn');
     const cancelBtn2 = this.panel.container.querySelector('.cancel-split-btn');
-    const modeButtons2 = this.panel.container.querySelector('.mode-buttons');
     updateSplitButtonContent(btn2, 'Create Component', 'click mesh');
     if (cancelBtn2) cancelBtn2.style.display = 'none';
-    if (modeButtons2) modeButtons2.style.display = '';
     this.panel.setCombineEnabled(!this.boxSelecting && this.selectedObjects.length > 1);
     // Restore gizmo target
     if (this.selectedObject) {
