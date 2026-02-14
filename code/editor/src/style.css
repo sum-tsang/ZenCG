@@ -44,6 +44,7 @@
   --glass-control-border: rgba(255, 255, 255, 0.22);
   --glass-control-hover: rgba(255, 255, 255, 0.16);
   --glass-control-active: rgba(255, 255, 255, 0.24);
+  --library-preview-bg: #232323;
 }
 
 /* Base page setup. */
@@ -82,7 +83,6 @@ body {
 
 /* Shared glass treatment used by top-level islands/panels. */
 .tools-stack,
-#panel-nav,
 #settings-island,
 .undo-footer {
   border: 1px solid var(--glass-border);
@@ -210,13 +210,13 @@ body {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
+  min-height: 0;
+  overflow: hidden;
 }
 
 #panel::-webkit-scrollbar,
 #panel-scroll::-webkit-scrollbar,
+.panel-pane::-webkit-scrollbar,
 .history-scroll::-webkit-scrollbar,
 .object-list-container::-webkit-scrollbar,
 .object-list-scroll::-webkit-scrollbar {
@@ -419,12 +419,12 @@ body.right-panel-collapsed {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: -16px -16px 14px;
-  padding: 14px 16px;
-  border-radius: var(--surface-radius) 0 0 0;
-  background-color: var(--glass-header-bg);
-  box-shadow: var(--glass-shadow-soft);
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 2px 2px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  box-shadow: none;
 }
 
 .panel-nav-title,
@@ -435,15 +435,19 @@ body.right-panel-collapsed {
 
 .panel-nav-title {
   color: var(--glass-text);
-  font-size: 1rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
 }
 
 .panel-nav-link {
   color: var(--glass-text-muted);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
 .panel-nav-title:hover,
@@ -451,7 +455,71 @@ body.right-panel-collapsed {
 .panel-nav-link:hover,
 .panel-nav-link:focus-visible {
   color: var(--glass-text);
-  text-decoration: underline;
+  text-decoration: none;
+}
+
+.panel-nav-link:hover,
+.panel-nav-link:focus-visible {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.panel-tabs {
+  margin-bottom: 10px;
+  padding: 2px;
+  display: flex;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(11, 16, 26, 0.28);
+  box-shadow: none;
+}
+
+.panel-tab {
+  flex: 1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: transparent;
+  color: var(--glass-text-faint);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.panel-tab:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--glass-text);
+}
+
+.panel-tab.is-active {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--glass-text);
+  box-shadow: none;
+}
+
+.panel-panes {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-pane {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.panel-pane[hidden] {
+  display: none !important;
 }
 
 /* Shared labels and basic form layout in the right panel. */
@@ -469,11 +537,16 @@ body.right-panel-collapsed {
   text-align: center;
 }
 
-.panel-field,
+.panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .library-import {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .panel-toggle {
@@ -494,8 +567,7 @@ body.right-panel-collapsed {
 }
 
 #panel .panel-text-input,
-#panel input[type="file"],
-.library-row select {
+#panel input[type="file"] {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--glass-control-border);
@@ -541,18 +613,129 @@ body.right-panel-collapsed {
   text-transform: uppercase;
 }
 
-.library-row {
-  display: flex;
-  gap: 6px;
+.library-gallery-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
-.library-row select {
+.library-gallery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.panel-pane--models:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-pane--models .panel-section--models {
   flex: 1;
-  font-size: 0.8rem;
+  min-height: 0;
+  gap: 12px;
+  padding-top: 4px;
+  border-bottom: none;
+}
+
+.panel-pane--models .library-import {
+  flex: 1;
+  min-height: 0;
+}
+
+.panel-header-row--models {
+  align-items: flex-start;
+}
+
+#panel .panel-header-row--models .panel-heading {
+  width: auto;
+  text-align: left;
+}
+
+.library-gallery-empty {
+  margin: 0;
+  padding: 24px 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.24);
+  text-align: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--glass-text-muted);
+}
+
+.library-tile {
+  width: 100%;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.3);
+  color: var(--glass-text);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.library-tile:hover:enabled {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.34);
+  transform: translateY(-1px);
+}
+
+.library-tile:disabled {
+  cursor: not-allowed;
+  opacity: 0.82;
+}
+
+.library-tile.is-importing {
+  border-color: rgba(103, 232, 249, 0.65);
+  background: rgba(8, 145, 178, 0.28);
+  cursor: wait;
+}
+
+.library-tile-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  opacity: 1;
+  transition: transform 0.2s ease;
+}
+
+.library-tile:hover:enabled .library-tile-image {
+  transform: scale(1.015);
+}
+
+.library-tile-name {
+  padding: 9px 12px 10px;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--glass-text-muted);
+}
+
+.library-tile-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--library-preview-bg);
 }
 
 /* Generic panel buttons share one glass control style. */
-#panel button:not(.object-button):not(.object-delete):not(.mode-btn):not(.reset-btn),
+#panel button:not(.object-button):not(.object-delete):not(.mode-btn):not(.reset-btn):not(.library-tile):not(.panel-tab),
 #panel .import-obj-button {
   border: 1px solid var(--glass-control-border);
   background: var(--glass-control-bg);
@@ -564,18 +747,18 @@ body.right-panel-collapsed {
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-#panel button:not(.object-button):not(.object-delete):not(.mode-btn):not(.reset-btn) {
+#panel button:not(.object-button):not(.object-delete):not(.mode-btn):not(.reset-btn):not(.library-tile):not(.panel-tab) {
   padding: 8px 10px;
   border-radius: 12px;
 }
 
-#panel button:not(.object-button):not(.object-delete):not(.mode-btn):not(.reset-btn):hover:enabled,
+#panel button:not(.object-button):not(.object-delete):not(.mode-btn):not(.reset-btn):not(.library-tile):not(.panel-tab):hover:enabled,
 #panel .import-obj-button:hover {
   background: var(--glass-control-hover);
   border-color: rgba(255, 255, 255, 0.35);
 }
 
-#panel button:not(.object-button):not(.object-delete):not(.mode-btn):not(.reset-btn):disabled {
+#panel button:not(.object-button):not(.object-delete):not(.mode-btn):not(.reset-btn):not(.library-tile):not(.panel-tab):disabled {
   cursor: not-allowed;
   color: rgba(255, 255, 255, 0.45);
   border-color: rgba(255, 255, 255, 0.12);

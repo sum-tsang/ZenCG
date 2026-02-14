@@ -1,7 +1,65 @@
 // Camera control wiring.
-import { createPan } from "./pan.js";
-import { createOrbit } from "./orbit.js";
-import { createZoom } from "./zoom.js";
+import * as THREE from "three";
+
+function createOrbit({ camera, target }) {
+  const orbitOffset = new THREE.Vector3();
+  const orbitSpherical = new THREE.Spherical();
+  const rotateSpeed = 0.005;
+  const orbitMin = 0.01;
+
+  return function orbit(deltaX, deltaY) {
+    orbitOffset.copy(camera.position).sub(target);
+    orbitSpherical.setFromVector3(orbitOffset);
+    orbitSpherical.theta -= deltaX * rotateSpeed;
+    orbitSpherical.phi -= deltaY * rotateSpeed;
+    orbitSpherical.phi = Math.max(orbitMin, Math.min(Math.PI - orbitMin, orbitSpherical.phi));
+    orbitOffset.setFromSpherical(orbitSpherical);
+    camera.position.copy(target).add(orbitOffset);
+  };
+}
+
+function createPan({ camera, target, renderer }) {
+  const panOffset = new THREE.Vector3();
+  const panRight = new THREE.Vector3();
+  const panUp = new THREE.Vector3();
+  const panTemp = new THREE.Vector3();
+
+  return function pan(deltaX, deltaY) {
+    const element = renderer.domElement;
+    panTemp.copy(camera.position).sub(target);
+    let targetDistance = panTemp.length();
+    targetDistance *= Math.tan((camera.fov * Math.PI) / 360);
+
+    const panX = (2 * deltaX * targetDistance) / element.clientHeight;
+    const panY = (2 * deltaY * targetDistance) / element.clientHeight;
+
+    panRight.setFromMatrixColumn(camera.matrix, 0);
+    panRight.multiplyScalar(-panX);
+    panUp.setFromMatrixColumn(camera.matrix, 1);
+    panUp.multiplyScalar(panY);
+
+    panOffset.copy(panRight).add(panUp);
+    camera.position.add(panOffset);
+    target.add(panOffset);
+  };
+}
+
+function createZoom({ camera, target }) {
+  const orbitOffset = new THREE.Vector3();
+  const orbitSpherical = new THREE.Spherical();
+  const zoomSpeed = 0.0015;
+  const minDistance = 0.2;
+  const maxDistance = 1500;
+
+  return function zoom(deltaY) {
+    orbitOffset.copy(camera.position).sub(target);
+    orbitSpherical.setFromVector3(orbitOffset);
+    orbitSpherical.radius *= 1 + deltaY * zoomSpeed;
+    orbitSpherical.radius = Math.max(minDistance, Math.min(maxDistance, orbitSpherical.radius));
+    orbitOffset.setFromSpherical(orbitSpherical);
+    camera.position.copy(target).add(orbitOffset);
+  };
+}
 
 // Attach Camera Controls
 export function attachCameraControls({ canvas, camera, target, renderer }) {

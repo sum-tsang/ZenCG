@@ -1,6 +1,6 @@
 // Transform panel UI.
 import * as THREE from "three";
-import { unitsToMeters, metersToUnits } from "../app/units.js";
+import { unitsToMeters, metersToUnits } from "../../core/settings.js";
 
 const svgNs = "http://www.w3.org/2000/svg";
 

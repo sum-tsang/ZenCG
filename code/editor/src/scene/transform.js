@@ -1,5 +1,5 @@
 // Transform serialization helpers.
-import { materialEditor } from "../modelMaterial/materialEditor.js";
+import { materialEditor } from "../model/materials/materialEditor.js";
 
 // Serialize an object's transform to plain arrays.
 export function serializeTransform(object) {

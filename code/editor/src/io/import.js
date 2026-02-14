@@ -131,38 +131,45 @@ export function setupObjImport({
   }
 
 
-  // Parse MTL text and return materials
-  function loadMtlFromText(text) {
+  // Parse MTL text and return materials.
+  function loadMtlFromText(text, options = {}) {
+    const {
+      stripTextures = true,
+      resourcePath = "",
+    } = options;
     try {
-      // Don't set resource path - we can't load external textures from local files
-      // The MTL will still provide base colors (Kd), specular (Ks), etc.
-      // To suppress texture loading errors, we use a data URI path that won't trigger requests
-      mtlLoader.setResourcePath("");
-      
-      // Remove texture references from MTL to avoid 404 errors
-      // Textures referenced in MTL files (map_Kd, map_Bump, etc.) can't be loaded
-      // without the actual texture files being uploaded
-      const cleanedText = text
-        .split('\n')
-        .filter(line => {
-          const trimmed = line.trim().toLowerCase();
-          // Remove lines that reference texture maps
-          return !trimmed.startsWith('map_kd') && 
-                 !trimmed.startsWith('map_ks') && 
-                 !trimmed.startsWith('map_ka') &&
-                 !trimmed.startsWith('map_bump') && 
-                 !trimmed.startsWith('bump') &&
-                 !trimmed.startsWith('map_d') &&
-                 !trimmed.startsWith('map_ns') &&
-                 !trimmed.startsWith('disp') &&
-                 !trimmed.startsWith('decal') &&
-                 !trimmed.startsWith('refl');
-        })
-        .join('\n');
-      
-      debug("[Import] Cleaned MTL (no textures):", cleanedText.substring(0, 300));
-      
-      const materials = mtlLoader.parse(cleanedText);
+      // Uploaded MTL files usually do not include bundled texture uploads, so
+      // texture map lines are stripped by default. Library imports can override
+      // this and provide a resource path for bundled textures.
+      mtlLoader.setResourcePath(
+        typeof resourcePath === "string" ? resourcePath : ""
+      );
+
+      const sourceText = stripTextures
+        ? text
+            .split("\n")
+            .filter((line) => {
+              const trimmed = line.trim().toLowerCase();
+              // Remove lines that reference texture maps.
+              return !trimmed.startsWith("map_kd") &&
+                !trimmed.startsWith("map_ks") &&
+                !trimmed.startsWith("map_ka") &&
+                !trimmed.startsWith("map_bump") &&
+                !trimmed.startsWith("bump") &&
+                !trimmed.startsWith("map_d") &&
+                !trimmed.startsWith("map_ns") &&
+                !trimmed.startsWith("disp") &&
+                !trimmed.startsWith("decal") &&
+                !trimmed.startsWith("refl");
+            })
+            .join("\n")
+        : text;
+
+      if (stripTextures) {
+        debug("[Import] Cleaned MTL (no textures):", sourceText.substring(0, 300));
+      }
+
+      const materials = mtlLoader.parse(sourceText);
       materials.preload();
       
       debug("[Import] Materials after preload:", materials);

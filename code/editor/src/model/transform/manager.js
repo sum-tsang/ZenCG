@@ -2,8 +2,8 @@
 import { TransformationGizmo } from "./gizmo.js";
 import { TransformationPanel } from "./panel.js";
 import * as THREE from "three";
-import { splitMeshByBox } from "../modelComponents/splitMeshByBox.js";
-import { combineModels } from "../modelCombination/combineModels.js";
+import { splitMeshByBox } from "../operations/splitMeshByBox.js";
+import { combineModels } from "../operations/combineModels.js";
 import {
   UndoHistory,
   applyTransformSnapshot,
@@ -134,7 +134,7 @@ export class TransformationManager {
     this.notifyToolStateChange();
   }
 
-  // NOTE: split logic moved to modelComponents/splitMeshByBox.js
+  // NOTE: split logic moved to model/operations/splitMeshByBox.js
 
   // Attach pointer listeners for selection and gizmo interactions.
   setupEventListeners() {

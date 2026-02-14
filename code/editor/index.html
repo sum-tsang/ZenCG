@@ -57,77 +57,110 @@
                 <a class="panel-nav-title" href="/">ZenCG</a>
                 <a class="panel-nav-link" href="/blog/">Blog</a>
               </nav>
-              <section class="panel-section">
-                <div class="panel-header-row panel-header-row--objects">
-                  <h2 class="panel-heading">Objects</h2>
-                  <label for="obj-input" class="import-obj-button">
-                    <span>Import OBJ</span>
-                    <span class="import-obj-plus">+</span>
-                  </label>
+              <div class="panel-tabs" role="tablist" aria-label="Control panel tabs">
+                <button
+                  id="panel-tab-controls"
+                  class="panel-tab is-active"
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="panel-pane-controls"
+                >
+                  Controls
+                </button>
+                <button
+                  id="panel-tab-models"
+                  class="panel-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-pane-models"
+                >
+                  Models
+                </button>
+              </div>
+              <input id="obj-input" class="file-input" type="file" accept=".obj,.mtl" multiple />
+              <div class="panel-panes">
+                <div
+                  id="panel-pane-controls"
+                  class="panel-pane"
+                  role="tabpanel"
+                  aria-labelledby="panel-tab-controls"
+                >
+                  <section class="panel-section">
+                    <div class="panel-header-row panel-header-row--objects">
+                      <h2 class="panel-heading">Objects</h2>
+                      <label for="obj-input" class="import-obj-button">
+                        <span>Import OBJ</span>
+                        <span class="import-obj-plus">+</span>
+                      </label>
+                    </div>
+                    <div class="object-list-container">
+                      <div class="object-list-scroll">
+                        <ul id="object-list" class="object-list"></ul>
+                      </div>
+                      <p id="object-list-empty" class="object-list-empty">
+                        No objects yet. Import an OBJ to get started.
+                      </p>
+                    </div>
+                    <div class="panel-field">
+                      <label for="object-name-input">Selected Name</label>
+                      <input
+                        id="object-name-input"
+                        class="panel-text-input"
+                        type="text"
+                        placeholder="Select an object"
+                        disabled
+                      />
+                    </div>
+                  </section>
+                  <section class="panel-section">
+                    <div class="panel-header-row">
+                      <h2 class="panel-heading">Actions</h2>
+                    </div>
+                    <div class="panel-field">
+                      <label for="export-name-input">Export Filename</label>
+                      <input
+                        id="export-name-input"
+                        class="panel-text-input"
+                        type="text"
+                        placeholder="zencg-export"
+                      />
+                    </div>
+                    <div class="panel-toggle">
+                      <input id="export-scene-toggle" type="checkbox" />
+                      <label for="export-scene-toggle">Export Whole Scene</label>
+                    </div>
+                    <button id="obj-export" disabled>Export OBJ</button>
+                    <button id="obj-delete" disabled>Delete Selected</button>
+                  </section>
+                  <section class="panel-section history-section" aria-label="History and status">
+                    <div class="panel-header-row history-header-row">
+                      <h2 class="panel-heading">History</h2>
+                    </div>
+                    <div class="history-scroll">
+                      <ul id="action-history-list" class="history-list"></ul>
+                    </div>
+                    <p id="status" class="history-status">Waiting for OBJ file...</p>
+                  </section>
                 </div>
-                <div class="object-list-container">
-                  <div class="object-list-scroll">
-                    <ul id="object-list" class="object-list"></ul>
-                  </div>
-                  <p id="object-list-empty" class="object-list-empty">
-                    No objects yet. Import an OBJ to get started.
-                  </p>
+                <div
+                  id="panel-pane-models"
+                  class="panel-pane panel-pane--models"
+                  role="tabpanel"
+                  aria-labelledby="panel-tab-models"
+                  hidden
+                >
+                  <section class="panel-section panel-section--models">
+                    <div class="panel-header-row panel-header-row--models">
+                      <h2 class="panel-heading">Model Library</h2>
+                    </div>
+                    <div class="library-import">
+                      <div id="library-gallery-list" class="library-gallery-list" role="list"></div>
+                    </div>
+                  </section>
                 </div>
-                <div class="panel-field">
-                  <label for="object-name-input">Selected Name</label>
-                  <input
-                    id="object-name-input"
-                    class="panel-text-input"
-                    type="text"
-                    placeholder="Select an object"
-                    disabled
-                  />
-                </div>
-              </section>
-              <section class="panel-section">
-                <div class="panel-header-row">
-                  <h2 class="panel-heading">Import</h2>
-                </div>
-                <input id="obj-input" class="file-input" type="file" accept=".obj,.mtl" multiple />
-                <div class="library-import">
-                  <label for="library-select">Model Library</label>
-                  <div class="library-row">
-                    <select id="library-select" disabled>
-                      <option value="">Loading library...</option>
-                    </select>
-                    <button id="library-import" disabled>Import</button>
-                  </div>
-                </div>
-              </section>
-              <section class="panel-section">
-                <div class="panel-header-row">
-                  <h2 class="panel-heading">Actions</h2>
-                </div>
-                <div class="panel-field">
-                  <label for="export-name-input">Export Filename</label>
-                  <input
-                    id="export-name-input"
-                    class="panel-text-input"
-                    type="text"
-                    placeholder="zencg-export"
-                  />
-                </div>
-                <div class="panel-toggle">
-                  <input id="export-scene-toggle" type="checkbox" />
-                  <label for="export-scene-toggle">Export Whole Scene</label>
-                </div>
-                <button id="obj-export" disabled>Export OBJ</button>
-                <button id="obj-delete" disabled>Delete Selected</button>
-              </section>
-              <section class="panel-section history-section" aria-label="History and status">
-                <div class="panel-header-row history-header-row">
-                  <h2 class="panel-heading">History</h2>
-                </div>
-                <div class="history-scroll">
-                  <ul id="action-history-list" class="history-list"></ul>
-                </div>
-                <p id="status" class="history-status">Waiting for OBJ file...</p>
-              </section>
+              </div>
             </div>
           </aside>
           <div id="settings-island" role="group" aria-label="Editor actions">

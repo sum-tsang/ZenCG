@@ -1,9 +1,8 @@
 // App bootstrap and wiring.
 import * as THREE from "three";
-import { config } from "./app/config.js";
-import { getDomRefs, assertDom } from "./app/dom.js";
-import { createInitialState } from "./app/state.js";
-import { createStore } from "./app/store.js";
+import { config, BASE_MESH_HEIGHT_METERS, metersToUnits } from "./core/settings.js";
+import { getDomRefs, assertDom } from "./ui/dom.js";
+import { createInitialState, createStore } from "./core/index.js";
 import { frameObjectBounds } from "./camera/camera.js";
 import { createSceneContext } from "./scene/context.js";
 import { findImportedRoot, updateSelectionOutline } from "./scene/selection.js";
@@ -28,15 +27,14 @@ import {
   loadActionHistory,
   saveActionHistory,
 } from "./persistence/actionHistoryStorage.js";
-import { setupTransformTools } from "./modelTransformation/transformTools.js";
+import { setupTransformTools } from "./model/transform/transformTools.js";
 import { setupImportExport } from "./io/import.js";
 import { setupLibraryImport } from "./io/modelLibrary.js";
-import { setupShortcuts } from "./app/shortcuts.js";
-import { setupUiLayout } from "./app/layout.js";
+import { setupShortcuts } from "./ui/shortcuts.js";
+import { setupUiLayout } from "./ui/layout.js";
 import { setupResizeAndRender } from "./scene/renderLoop.js";
-import { createStatusUpdater } from "./app/status.js";
-import { MaterialPanel } from "./modelMaterial/materialPanel.js";
-import { BASE_MESH_HEIGHT_METERS, metersToUnits } from "./app/units.js";
+import { createStatusUpdater } from "./ui/status.js";
+import { MaterialPanel } from "./model/materials/materialPanel.js";
 
 const dom = getDomRefs();
 assertDom(dom);
@@ -464,6 +462,34 @@ const setupFooterControls = () => {
   }
 };
 
+const setupPanelTabs = () => {
+  if (!(dom.panelTabControls instanceof HTMLButtonElement)) return;
+  if (!(dom.panelTabModels instanceof HTMLButtonElement)) return;
+  if (!(dom.panelPaneControls instanceof HTMLElement)) return;
+  if (!(dom.panelPaneModels instanceof HTMLElement)) return;
+
+  const setActiveTab = (tabKey) => {
+    const showModels = tabKey === "models";
+    dom.panelPaneControls.hidden = showModels;
+    dom.panelPaneModels.hidden = !showModels;
+
+    dom.panelTabControls.classList.toggle("is-active", !showModels);
+    dom.panelTabModels.classList.toggle("is-active", showModels);
+    dom.panelTabControls.setAttribute("aria-selected", showModels ? "false" : "true");
+    dom.panelTabModels.setAttribute("aria-selected", showModels ? "true" : "false");
+  };
+
+  dom.panelTabControls.addEventListener("click", () => {
+    setActiveTab("controls");
+  });
+
+  dom.panelTabModels.addEventListener("click", () => {
+    setActiveTab("models");
+  });
+
+  setActiveTab("controls");
+};
+
 const setupManualModal = () => {
   const { manualButton, manualModal } = dom;
   if (!(manualButton instanceof HTMLButtonElement)) return;
@@ -557,6 +583,7 @@ if (dom.panelToggle instanceof HTMLButtonElement) {
 }
 
 setupManualModal();
+setupPanelTabs();
 
 ({ deleteImportedObject, undoDelete, hasUndoDelete } = createDeleteImportedObject({
   importRoot,

@@ -5,8 +5,8 @@
     "objPath": "./assets/models/cube.obj"
   },
   {
-    "id": "sphere",
-    "name": "Sphere",
+    "id": "uv_sphere",
+    "name": "UV Sphere",
     "objPath": "./assets/models/sphere.obj"
   },
   {
@@ -23,5 +23,15 @@
     "id": "base_mesh",
     "name": "Base Mesh",
     "objPath": "./assets/models/base_mesh.obj"
+  },
+  {
+    "id": "cone",
+    "name": "Cone",
+    "objPath": "./assets/models/cone.obj"
+  },
+  {
+    "id": "cylinder",
+    "name": "Cylinder",
+    "objPath": "./assets/models/cylinder.obj"
   }
 ]

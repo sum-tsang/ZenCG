@@ -1,6 +1,6 @@
 // Build persistable entries from live scene objects.
 import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
-import { materialEditor } from "../modelMaterial/materialEditor.js";
+import { materialEditor } from "../model/materials/materialEditor.js";
 import { serializeTransform } from "../scene/transform.js";
 
 const exporter = new OBJExporter();
