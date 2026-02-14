@@ -1,7 +1,27 @@
+// IndexedDB persistence.
+let cachedDbPromise = null;
+let cachedDbKey = "";
+
+function getDbKey(config) {
+  return `${config.dbName}::${config.storeName}`;
+}
+
+function clearCachedDb() {
+  cachedDbPromise = null;
+  cachedDbKey = "";
+}
+
 // Open or create the IndexedDB database.
 function openDb(config) {
+  const dbKey = getDbKey(config);
+  if (cachedDbPromise && cachedDbKey === dbKey) {
+    return cachedDbPromise;
+  }
+
+  cachedDbKey = dbKey;
   return new Promise((resolve, reject) => {
     if (!("indexedDB" in window)) {
+      clearCachedDb();
       reject(new Error("IndexedDB not available."));
       return;
     }
@@ -13,29 +33,55 @@ function openDb(config) {
         db.createObjectStore(config.storeName, { keyPath: "id" });
       }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => {
+        db.close();
+        clearCachedDb();
+      };
+      resolve(db);
+    };
+    request.onerror = () => {
+      clearCachedDb();
+      reject(request.error);
+    };
+    request.onblocked = () => {
+      console.warn("IndexedDB open blocked.");
+    };
   });
+}
+
+function hasObjText(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function normalizeName(value, fallback = "restored.obj") {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  return fallback;
 }
 
 // Persist imported OBJ entries to IndexedDB.
 export function saveStoredImports(config, storedImports) {
-  const entries = storedImports.map((entry) => ({
-    name: entry.name,
-    text: entry.text,
-    transform: entry.transform ?? null,
-    material: entry.material ?? null,
-  }));
+  const sourceEntries = Array.isArray(storedImports) ? storedImports : [];
+  const entries = sourceEntries
+    .map((entry) => ({
+      name: entry?.name,
+      text: entry?.text,
+      transform: entry?.transform ?? null,
+      material: entry?.material ?? null,
+    }))
+    .filter((entry) => hasObjText(entry.text));
 
-  openDb(config)
+  cachedDbPromise = openDb(config);
+  cachedDbPromise
     .then((db) => {
       const tx = db.transaction(config.storeName, "readwrite");
       const store = tx.objectStore(config.storeName);
       store.put({ id: config.storageKey, entries, updatedAt: Date.now() });
-      tx.oncomplete = () => db.close();
       tx.onerror = () => {
         console.warn("Unable to save OBJ to IndexedDB.", tx.error);
-        db.close();
       };
     })
     .catch((error) => {
@@ -45,7 +91,8 @@ export function saveStoredImports(config, storedImports) {
 
 // Load persisted OBJ entries from IndexedDB.
 export function loadStoredImports(config) {
-  return openDb(config)
+  cachedDbPromise = openDb(config);
+  return cachedDbPromise
     .then(
       (db) =>
         new Promise((resolve) => {
@@ -56,23 +103,22 @@ export function loadStoredImports(config) {
           request.onsuccess = () => {
             const result = request.result;
             if (result?.entries && Array.isArray(result.entries)) {
-              resolve(
-                result.entries.filter(
-                  (entry) => entry && typeof entry.text === "string"
-                )
-              );
+              const validEntries = result.entries
+                .filter((entry) => entry && hasObjText(entry.text))
+                .map((entry, index) => ({
+                  ...entry,
+                  name: normalizeName(entry.name, `restored_${index + 1}.obj`),
+                }));
+              resolve(validEntries);
               return;
             }
-            if (result && typeof result.text === "string") {
-              resolve([
-                {
-                  name:
-                    typeof result.name === "string" && result.name
-                      ? result.name
-                      : "restored.obj",
+            if (result && hasObjText(result.text)) {
+              resolve(
+                [{
+                  name: normalizeName(result.name),
                   text: result.text,
-                },
-              ]);
+                }]
+              );
               return;
             }
             resolve(null);
@@ -82,11 +128,8 @@ export function loadStoredImports(config) {
             console.warn("Unable to read OBJ from IndexedDB.", request.error);
             resolve(null);
           };
-
-          tx.oncomplete = () => db.close();
           tx.onerror = () => {
             console.warn("Unable to read OBJ from IndexedDB.", tx.error);
-            db.close();
             resolve(null);
           };
         })

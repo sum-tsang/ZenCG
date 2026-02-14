@@ -37,6 +37,7 @@
         --paper: #ffffff;
         --accent: #2563eb;
         --accent-2: #0f172a;
+        --obsidian: #0b0f14;
         --stroke: rgba(5, 5, 5, 0.12);
       }
 
@@ -45,6 +46,136 @@
         background: linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
         color: var(--ink);
         min-height: 100vh;
+      }
+
+      .hero-grid {
+        position: absolute;
+        inset: 0;
+        background: #050505;
+        overflow: hidden;
+      }
+
+      .hero-grid::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 62%;
+        width: 200%;
+        height: 200%;
+        transform: translate(-50%, -50%) perspective(1200px) rotateX(72deg);
+        transform-origin: top center;
+        background-image:
+          linear-gradient(to right, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.28) 1px, transparent 1px);
+        background-size: 70px 70px;
+        opacity: 0.7;
+        filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.2));
+      }
+
+      .hero-grid::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(1000px 480px at 50% 10%, rgba(37, 99, 235, 0.12), transparent 65%),
+          linear-gradient(180deg, rgba(5, 5, 5, 0.75) 0%, rgba(5, 5, 5, 0.25) 45%, rgba(5, 5, 5, 0.85) 100%);
+      }
+
+      @media (max-width: 640px) {
+        .hero-grid::before {
+          background-size: 50px 50px;
+        }
+      }
+
+      .obsidian-panel {
+        background: var(--obsidian);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 24px;
+        color: #f8fafc;
+        padding: 28px;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+      }
+
+      .glass-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.75),
+          rgba(255, 255, 255, 0.35)
+        );
+        color: var(--accent-2);
+        padding: 6px 14px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.35em;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+
+      .section-lede {
+        color: rgba(11, 15, 20, 0.82);
+        font-weight: 600;
+      }
+
+      .timeline {
+        position: relative;
+      }
+
+      .timeline-rail {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 1px;
+        height: 100%;
+        transform: translateX(-50%);
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0.05));
+      }
+
+      .timeline-node {
+        display: flex;
+        justify-content: center;
+        padding-top: 24px;
+      }
+
+      .timeline-dot {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--accent-2);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .timeline-card {
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 22px;
+        padding: 18px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        display: grid;
+        gap: 14px;
+        max-width: 420px;
+      }
+
+      .timeline-card img {
+        width: 100%;
+        height: 140px;
+        border-radius: 16px;
+        object-fit: cover;
       }
     </style>
   </head>
@@ -69,13 +200,7 @@
 
       <main>
         <section class="relative flex w-full min-h-[72vh] items-center">
-          <img
-            src="https://cdn.pixabay.com/photo/2021/01/25/18/50/cubes-5949272_1280.jpg"
-            alt="Colorful 3D cubes and blocks stacked in a geometric arrangement."
-            class="absolute inset-0 h-full w-full object-cover"
-            loading="lazy"
-          />
-          <div class="absolute inset-0 bg-black/65"></div>
+          <div class="hero-grid" aria-hidden="true"></div>
           <div class="relative mx-auto w-full max-w-6xl px-6 py-24 text-center text-white">
             <div class="mx-auto max-w-2xl">
               <span
@@ -103,62 +228,119 @@
         </section>
       </main>
 
-      <section class="mx-auto w-full max-w-6xl px-6 pb-16 pt-16">
+      <section class="mx-auto w-full max-w-6xl px-6 pb-10 pt-16">
+        <div class="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div class="space-y-4">
+            <span class="glass-pill">Editor</span>
+            <h2 class="font-display text-3xl sm:text-4xl">ZenCG Editor</h2>
+            <p class="section-lede text-sm">
+              A focused workspace for OBJ edits. Import, adjust, and export with minimal steps.
+            </p>
+          </div>
+          <div class="obsidian-panel space-y-5">
+            <img
+              src="https://cdn.pixabay.com/photo/2021/01/25/18/50/cubes-5949272_1280.jpg"
+              alt="Minimal 3D shapes arranged in a clean, geometric layout."
+              class="h-56 w-full rounded-2xl object-cover"
+              loading="lazy"
+            />
+            <p class="text-sm text-white/70">
+              Designed for clarity: keep the canvas large, tools light, and exports clean.
+            </p>
+            <a
+              href="./editor/"
+              class="inline-flex items-center rounded-full bg-[var(--accent)] px-6 py-3 text-xs font-semibold uppercase tracking-[0.3em] text-white"
+            >
+              Open the editor
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mx-auto w-full max-w-6xl px-6 pb-10 pt-10">
         <div class="mx-auto max-w-3xl text-center">
-          <p class="text-xs uppercase tracking-[0.35em] text-[var(--accent-2)]">Essential focus</p>
-          <h2 class="mt-3 font-display text-3xl sm:text-4xl">Built for simplicity.</h2>
-          <p class="mt-3 text-sm text-[var(--slate)]">Three reasons ZenCG stays lightweight and clear.</p>
+          <span class="glass-pill">Timeline</span>
+          <h2 class="mt-4 font-display text-3xl sm:text-4xl">3D Editing, Made Simple.</h2>
+          <p class="mt-3 section-lede text-sm">A short flow that mirrors how the editor works.</p>
         </div>
 
-        <div class="relative mt-12 space-y-12">
-          <div class="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-[var(--stroke)] lg:block"></div>
+        <div class="timeline mt-12 space-y-8">
+          <div class="timeline-rail hidden lg:block" aria-hidden="true"></div>
 
-          <div class="grid items-center gap-8 lg:grid-cols-2">
-            <div class="relative lg:pr-10">
-              <div class="absolute -right-3 top-6 hidden h-3 w-3 rounded-full bg-[var(--accent)] lg:block"></div>
+          <div class="grid items-start gap-6 lg:grid-cols-[1fr_80px_1fr]">
+            <div class="timeline-card lg:ml-auto">
               <img
                 src="https://cdn.pixabay.com/photo/2021/01/25/18/50/cubes-5949272_1280.jpg"
-                alt="Minimal 3D blocks laid out on a clean surface."
-                class="w-full rounded-2xl border border-[var(--stroke)] object-cover"
+                alt="Minimal 3D shapes illustrating a clean editor workspace."
                 loading="lazy"
               />
+              <div>
+                <h3 class="font-display text-xl">Open the editor.</h3>
+                <p class="mt-2 section-lede text-sm">Drop an OBJ into the workspace instantly.</p>
+              </div>
             </div>
-            <div class="text-left lg:pl-10">
-              <h3 class="font-display text-2xl">Simple UI</h3>
-              <p class="mt-3 text-sm text-[var(--slate)]">A distraction-free workspace for fast edits.</p>
+            <div class="timeline-node hidden lg:flex">
+              <span class="timeline-dot">01</span>
+            </div>
+            <div class="hidden lg:block"></div>
+          </div>
+
+          <div class="grid items-start gap-6 lg:grid-cols-[1fr_80px_1fr]">
+            <div class="hidden lg:block"></div>
+            <div class="timeline-node hidden lg:flex">
+              <span class="timeline-dot">02</span>
+            </div>
+            <div class="timeline-card lg:mr-auto">
+              <img
+                src="https://cdn.pixabay.com/photo/2021/01/25/18/50/cubes-5949272_1280.jpg"
+                alt="Simple shapes representing guided learning."
+                loading="lazy"
+              />
+              <div>
+                <h3 class="font-display text-xl">Follow quick tutorials.</h3>
+                <p class="mt-2 section-lede text-sm">Short guides reveal the fastest path.</p>
+              </div>
             </div>
           </div>
 
-          <div class="grid items-center gap-8 lg:grid-cols-2">
-            <div class="order-2 text-left lg:order-1 lg:pr-10">
-              <h3 class="font-display text-2xl">Integrated tutorials</h3>
-              <p class="mt-3 text-sm text-[var(--slate)]">Guided help built into the workflow.</p>
-            </div>
-            <div class="relative order-1 lg:order-2 lg:pl-10">
-              <div class="absolute -left-3 top-6 hidden h-3 w-3 rounded-full bg-[var(--accent)] lg:block"></div>
+          <div class="grid items-start gap-6 lg:grid-cols-[1fr_80px_1fr]">
+            <div class="timeline-card lg:ml-auto">
               <img
                 src="https://cdn.pixabay.com/photo/2021/01/25/18/50/cubes-5949272_1280.jpg"
-                alt="Stacked 3D forms showing a guided progression."
-                class="w-full rounded-2xl border border-[var(--stroke)] object-cover"
+                alt="Geometric forms aligned for export."
                 loading="lazy"
               />
+              <div>
+                <h3 class="font-display text-xl">Export the scene.</h3>
+                <p class="mt-2 section-lede text-sm">Save the clean OBJ in seconds.</p>
+              </div>
             </div>
+            <div class="timeline-node hidden lg:flex">
+              <span class="timeline-dot">03</span>
+            </div>
+            <div class="hidden lg:block"></div>
           </div>
+        </div>
+      </section>
 
-          <div class="grid items-center gap-8 lg:grid-cols-2">
-            <div class="relative lg:pr-10">
-              <div class="absolute -right-3 top-6 hidden h-3 w-3 rounded-full bg-[var(--accent)] lg:block"></div>
-              <img
-                src="https://cdn.pixabay.com/photo/2021/01/25/18/50/cubes-5949272_1280.jpg"
-                alt="3D shapes arranged for quick editing on the go."
-                class="w-full rounded-2xl border border-[var(--stroke)] object-cover"
-                loading="lazy"
-              />
-            </div>
-            <div class="text-left lg:pl-10">
-              <h3 class="font-display text-2xl">For educators</h3>
-              <p class="mt-3 text-sm text-[var(--slate)]">Perfect for classrooms and on-the-go editing.</p>
-            </div>
+      <section class="mx-auto w-full max-w-6xl px-6 pb-20 pt-10">
+        <div class="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div class="space-y-4">
+            <span class="glass-pill">Blog</span>
+            <h2 class="font-display text-3xl sm:text-4xl">Read the ZenCG blog.</h2>
+            <p class="section-lede text-sm">Short updates, tips, and release notes.</p>
+          </div>
+          <div class="obsidian-panel">
+            <h3 class="font-display text-2xl text-white">Stay current.</h3>
+            <p class="mt-3 text-sm text-white/70">
+              New tutorials and workflow updates arrive regularly.
+            </p>
+            <a
+              href="./blog/"
+              class="mt-6 inline-flex items-center rounded-full bg-white/10 px-6 py-3 text-xs font-semibold uppercase tracking-[0.3em] text-white hover:bg-white/20"
+            >
+              Read the blog
+            </a>
           </div>
         </div>
       </section>

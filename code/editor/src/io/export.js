@@ -1,5 +1,19 @@
+<<<<<<< HEAD
 import * as THREE from "three";
+=======
+// OBJ export pipeline.
+>>>>>>> 73763f094f1b648a9601aef0c04717d6b025c542
 import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
+
+const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
+
+function normalizeExportBaseName(name, fallback = "zencg-export") {
+  const raw = typeof name === "string" ? name.trim() : "";
+  if (!raw) return fallback;
+  const cleaned = raw.replace(INVALID_FILENAME_CHARS, "-").replace(/\s+/g, " ").trim();
+  const withoutExtension = cleaned.replace(/\.(obj|mtl|zip)$/i, "");
+  return withoutExtension || fallback;
+}
 
 // Generate MTL content from an object's materials
 function generateMtlContent(object, textures) {
@@ -73,9 +87,10 @@ function generateMtlContent(object, textures) {
 }
 
 // Update OBJ content to reference materials
-function addMaterialReferencesToObj(objContent, object, materialMap) {
+function addMaterialReferencesToObj(objContent, object, materialMap, mtlFilename) {
   // Add mtllib reference at the top
-  let updatedObj = "mtllib zencg-export.mtl\n" + objContent;
+  const mtllibName = mtlFilename || "zencg-export.mtl";
+  let updatedObj = `mtllib ${mtllibName}\n` + objContent;
 
   // The OBJExporter already includes usemtl directives if materials have names
   // But we need to ensure material names match our MTL file
@@ -118,7 +133,11 @@ function textureToBlob(texture) {
 }
 
 // Wire up OBJ export button handling.
+<<<<<<< HEAD
 export function setupObjExport({ button, getObject, getAllObjects, setStatus }) {
+=======
+export function setupObjExport({ button, getObject, getFilename, setStatus }) {
+>>>>>>> 73763f094f1b648a9601aef0c04717d6b025c542
   if (!(button instanceof HTMLButtonElement)) {
     throw new Error("OBJ export button not found.");
   }
@@ -161,6 +180,13 @@ export function setupObjExport({ button, getObject, getAllObjects, setStatus }) 
       }
     }
 
+    const baseName = normalizeExportBaseName(
+      typeof getFilename === "function" ? getFilename() : "",
+      normalizeExportBaseName(object?.name || "")
+    );
+    const objFilename = `${baseName}.obj`;
+    const mtlFilename = `${baseName}.mtl`;
+
     const textures = [];
     const { mtl, materialMap } = generateMtlContent(objectToExport, textures);
 
@@ -179,11 +205,12 @@ export function setupObjExport({ button, getObject, getAllObjects, setStatus }) 
 
     // Add mtllib reference if we have materials
     if (mtl) {
-      objOutput = "mtllib zencg-export.mtl\n" + objOutput;
+      objOutput = `mtllib ${mtlFilename}\n` + objOutput;
     }
 
     // If there are textures, we need to export as a zip
     if (textures.length > 0) {
+<<<<<<< HEAD
       setStatus?.(statusPrefix + "Exporting with textures...");
       await exportAsZip(objOutput, mtl, textures, setStatus);
     } else if (mtl) {
@@ -209,6 +236,19 @@ export function setupObjExport({ button, getObject, getAllObjects, setStatus }) 
           }
         }
       });
+=======
+      setStatus?.("Exporting with textures...");
+      await exportAsZip(objOutput, mtl, textures, setStatus, baseName);
+    } else if (mtl) {
+      // Export both OBJ and MTL files
+      downloadFile(objOutput, objFilename, "text/plain");
+      downloadFile(mtl, mtlFilename, "text/plain");
+      setStatus?.("Exported OBJ + MTL.");
+    } else {
+      // No materials, just export OBJ
+      downloadFile(objOutput, objFilename, "text/plain");
+      setStatus?.("Exported OBJ.");
+>>>>>>> 73763f094f1b648a9601aef0c04717d6b025c542
     }
   });
 }
@@ -225,16 +265,19 @@ function downloadFile(content, filename, mimeType) {
 }
 
 // Export OBJ, MTL, and textures as a zip file
-async function exportAsZip(objContent, mtlContent, textures, setStatus) {
+async function exportAsZip(objContent, mtlContent, textures, setStatus, baseName) {
+  const safeBaseName = normalizeExportBaseName(baseName);
+  const objFilename = `${safeBaseName}.obj`;
+  const mtlFilename = `${safeBaseName}.mtl`;
   // Simple zip implementation without external library
   // We'll just download files sequentially instead
   
   // Download OBJ
-  downloadFile(objContent, "zencg-export.obj", "text/plain");
+  downloadFile(objContent, objFilename, "text/plain");
   
   // Download MTL
   if (mtlContent) {
-    downloadFile(mtlContent, "zencg-export.mtl", "text/plain");
+    downloadFile(mtlContent, mtlFilename, "text/plain");
   }
   
   // Download textures

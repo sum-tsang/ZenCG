@@ -1,3 +1,4 @@
+// Resource disposal helpers.
 // Dispose geometry and materials for an object tree.
 export function disposeObject(object) {
   object.traverse((child) => {

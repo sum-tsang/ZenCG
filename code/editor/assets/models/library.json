@@ -5,8 +5,33 @@
     "objPath": "./assets/models/cube.obj"
   },
   {
+    "id": "uv_sphere",
+    "name": "UV Sphere",
+    "objPath": "./assets/models/sphere.obj"
+  },
+  {
+    "id": "torus",
+    "name": "Torus",
+    "objPath": "./assets/models/torus.obj"
+  },
+  {
+    "id": "plane",
+    "name": "Plane",
+    "objPath": "./assets/models/plane.obj"
+  },
+  {
     "id": "base_mesh",
     "name": "Base Mesh",
     "objPath": "./assets/models/base_mesh.obj"
+  },
+  {
+    "id": "cone",
+    "name": "Cone",
+    "objPath": "./assets/models/cone.obj"
+  },
+  {
+    "id": "cylinder",
+    "name": "Cylinder",
+    "objPath": "./assets/models/cylinder.obj"
   }
 ]

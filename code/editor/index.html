@@ -7,18 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
+    <!-- Editor layout -->
     <div id="app">
-      <header id="editor-nav">
-        <div class="nav-inner">
-          <span class="nav-title"><strong>ZenCG</strong></span>
-        </div>
-      </header>
       <div id="editor-body">
         <main id="viewport">
           <canvas id="viewport-canvas" aria-label="3D viewport"></canvas>
@@ -26,37 +22,298 @@
             <canvas id="env-gizmo-canvas" aria-label="Environment gizmo"></canvas>
           </aside>
         </main>
-        <aside id="panel">
-          <section class="panel-section">
-            <div class="panel-header-row">
-              <h2 class="panel-heading">Objects</h2>
-              <label for="obj-input" class="import-obj-button">
-                <span>Import OBJ</span>
-                <span class="import-obj-plus">+</span>
-              </label>
+        <button
+          id="tools-toggle"
+          class="edge-toggle edge-toggle-left"
+          type="button"
+          aria-label="Collapse tools panel"
+          aria-pressed="false"
+        >
+          <span class="edge-toggle-icon" aria-hidden="true">&lt;</span>
+        </button>
+        <button
+          id="panel-toggle"
+          class="edge-toggle edge-toggle-right"
+          type="button"
+          aria-label="Collapse control panel"
+          aria-pressed="false"
+        >
+          <span class="edge-toggle-icon" aria-hidden="true">&gt;</span>
+        </button>
+        <aside id="tools-island" aria-label="Transform and material tools">
+          <div class="tools-stack">
+            <section class="tools-card" aria-label="Transform tools">
+              <div id="transformation-panel-container"></div>
+            </section>
+            <section class="tools-card" aria-label="Material tools">
+              <div id="material-panel-container"></div>
+            </section>
+          </div>
+        </aside>
+        <div id="panel-stack">
+          <aside id="panel">
+            <div id="panel-scroll">
+              <nav id="panel-nav" aria-label="ZenCG navigation">
+                <a class="panel-nav-title" href="/">ZenCG</a>
+                <a class="panel-nav-link" href="/blog/">Blog</a>
+              </nav>
+              <div class="panel-tabs" role="tablist" aria-label="Control panel tabs">
+                <button
+                  id="panel-tab-controls"
+                  class="panel-tab is-active"
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="panel-pane-controls"
+                >
+                  Controls
+                </button>
+                <button
+                  id="panel-tab-models"
+                  class="panel-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="panel-pane-models"
+                >
+                  Models
+                </button>
+              </div>
+              <input id="obj-input" class="file-input" type="file" accept=".obj,.mtl" multiple />
+              <div class="panel-panes">
+                <div
+                  id="panel-pane-controls"
+                  class="panel-pane"
+                  role="tabpanel"
+                  aria-labelledby="panel-tab-controls"
+                >
+                  <section class="panel-section">
+                    <div class="panel-header-row panel-header-row--objects">
+                      <h2 class="panel-heading">Objects</h2>
+                      <label for="obj-input" class="import-obj-button">
+                        <span>Import OBJ</span>
+                        <span class="import-obj-plus">+</span>
+                      </label>
+                    </div>
+                    <div class="object-list-container">
+                      <div class="object-list-scroll">
+                        <ul id="object-list" class="object-list"></ul>
+                      </div>
+                      <p id="object-list-empty" class="object-list-empty">
+                        No objects yet. Import an OBJ to get started.
+                      </p>
+                    </div>
+                    <div class="panel-field">
+                      <label for="object-name-input">Selected Name</label>
+                      <input
+                        id="object-name-input"
+                        class="panel-text-input"
+                        type="text"
+                        placeholder="Select an object"
+                        disabled
+                      />
+                    </div>
+                  </section>
+                  <section class="panel-section">
+                    <div class="panel-header-row">
+                      <h2 class="panel-heading">Actions</h2>
+                    </div>
+                    <div class="panel-field">
+                      <label for="export-name-input">Export Filename</label>
+                      <input
+                        id="export-name-input"
+                        class="panel-text-input"
+                        type="text"
+                        placeholder="zencg-export"
+                      />
+                    </div>
+                    <div class="panel-toggle">
+                      <input id="export-scene-toggle" type="checkbox" />
+                      <label for="export-scene-toggle">Export Whole Scene</label>
+                    </div>
+                    <button id="obj-export" disabled>Export OBJ</button>
+                    <button id="obj-delete" disabled>Delete Selected</button>
+                  </section>
+                  <section class="panel-section history-section" aria-label="History and status">
+                    <div class="panel-header-row history-header-row">
+                      <h2 class="panel-heading">History</h2>
+                    </div>
+                    <div class="history-scroll">
+                      <ul id="action-history-list" class="history-list"></ul>
+                    </div>
+                    <p id="status" class="history-status">Waiting for OBJ file...</p>
+                  </section>
+                </div>
+                <div
+                  id="panel-pane-models"
+                  class="panel-pane panel-pane--models"
+                  role="tabpanel"
+                  aria-labelledby="panel-tab-models"
+                  hidden
+                >
+                  <section class="panel-section panel-section--models">
+                    <div class="panel-header-row panel-header-row--models">
+                      <h2 class="panel-heading">Model Library</h2>
+                    </div>
+                    <div class="library-import">
+                      <div id="library-gallery-list" class="library-gallery-list" role="list"></div>
+                    </div>
+                  </section>
+                </div>
+              </div>
             </div>
-            <div class="object-list-container">
-              <ul id="object-list" class="object-list"></ul>
+          </aside>
+          <div id="settings-island" role="group" aria-label="Editor actions">
+            <button
+              id="manual-button"
+              class="island-action"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="manual-modal"
+              aria-expanded="false"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M5 4.5C5 3.7 5.7 3 6.5 3H19v16.5c0 .8-.7 1.5-1.5 1.5H6.5c-.8 0-1.5-.7-1.5-1.5V4.5Zm2 .5v14.5h10.5V5H7Zm-1 0c0-.6.4-1 1-1h.5v15.5H7c-.6 0-1-.4-1-1V5Z"
+                />
+              </svg>
+              <span>User Manual</span>
+            </button>
+          </div>
+        </div>
+        <footer id="undo-footer" class="undo-footer" role="group" aria-label="Undo and redo">
+          <div class="undo-footer-content">
+            <div class="undo-footer-tool" role="status" aria-live="polite">
+              <span class="undo-footer-label">Tool</span>
+              <span id="footer-tool-value" class="undo-footer-value">Move</span>
+              <span class="undo-footer-axis-group" aria-label="Active axis">
+                <span id="footer-axis-x" class="undo-footer-axis">X</span>
+                <span id="footer-axis-y" class="undo-footer-axis">Y</span>
+                <span id="footer-axis-z" class="undo-footer-axis">Z</span>
+              </span>
             </div>
-          </section>
-          <input id="obj-input" class="file-input" type="file" accept=".obj,.mtl" multiple />
-          <div class="library-import">
-            <label for="library-select">Model Library</label>
-            <div class="library-row">
-              <select id="library-select" disabled>
-                <option value="">Loading library...</option>
-              </select>
-              <button id="library-import" disabled>Import</button>
+            <div class="undo-footer-actions">
+              <button id="undo-button" class="undo-footer-button" type="button">Undo</button>
+              <button id="redo-button" class="undo-footer-button" type="button">Redo</button>
+            </div>
+            <div class="undo-footer-recent" role="status" aria-live="polite">
+              <span class="undo-footer-label">Most recent action</span>
+              <span id="recent-action" class="undo-footer-value">No actions yet</span>
             </div>
           </div>
-          <button id="obj-export" disabled>Export OBJ</button>
-          <button id="obj-delete" disabled>Delete Selected</button>
-          <p id="status">Waiting for OBJ file...</p>
-          <hr class="panel-divider" />
-          <div id="transformation-panel-container"></div>
-          <hr class="panel-divider" />
-          <div id="material-panel-container"></div>
-        </aside>
+        </footer>
+      </div>
+    </div>
+    <div
+      id="manual-modal"
+      class="manual-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="manual-title"
+      aria-hidden="true"
+    >
+      <div class="manual-card" role="document">
+        <header class="manual-header">
+          <div>
+            <h2 id="manual-title" class="manual-title">User Manual</h2>
+            <p class="manual-subtitle">ZenCG tutorials and information.</p>
+          </div>
+          <button class="manual-close" type="button" data-manual-close aria-label="Close user manual">
+            Close
+          </button>
+        </header>
+        <div class="manual-content">
+          <ul class="manual-list">
+            <li class="manual-item">
+              <span class="manual-item-key">Import OBJ Button</span>
+              <span class="manual-item-action">Open the file picker and import OBJ files, with optional MTL files.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Object List Click</span>
+              <span class="manual-item-action">Select an object as the active target.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Object List Right-Click</span>
+              <span class="manual-item-action">Toggle an object in multi-selection.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">G</span>
+              <span class="manual-item-action">Switch transform mode to translate.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">R</span>
+              <span class="manual-item-action">Switch transform mode to rotate.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">S</span>
+              <span class="manual-item-action">Switch transform mode to scale.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">X</span>
+              <span class="manual-item-action">Start axis-locked transform on X for the current mode.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Y</span>
+              <span class="manual-item-action">Start axis-locked transform on Y for the current mode.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Z</span>
+              <span class="manual-item-action">Start axis-locked transform on Z for the current mode.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Mouse Move</span>
+              <span class="manual-item-action">After pressing X, Y, or Z, move the mouse to apply the transform.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Enter</span>
+              <span class="manual-item-action">Commit the active axis-locked transform.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Esc</span>
+              <span class="manual-item-action">Cancel the active axis-locked transform and restore the previous state.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Create Component Button</span>
+              <span class="manual-item-action">Start split workflow using a selection box.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">C</span>
+              <span class="manual-item-action">Combine selected models into one model group.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">D</span>
+              <span class="manual-item-action">Duplicate selected model(s) instantly.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Cmd/Ctrl + C</span>
+              <span class="manual-item-action">Copy selected model(s) to the in-editor clipboard.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Cmd/Ctrl + V</span>
+              <span class="manual-item-action">Paste copied model(s) into the scene.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Cmd/Ctrl + Z</span>
+              <span class="manual-item-action">Undo the most recent transform or action.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Cmd/Ctrl + Shift + Z / Cmd/Ctrl + Y</span>
+              <span class="manual-item-action">Redo the most recently undone transform or action.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Del / Backspace</span>
+              <span class="manual-item-action">Delete the selected object.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Export Whole Scene Toggle</span>
+              <span class="manual-item-action">Switch between exporting the selected object or all imported objects.</span>
+            </li>
+            <li class="manual-item">
+              <span class="manual-item-key">Export OBJ Button</span>
+              <span class="manual-item-action">Export the selected object or full scene to OBJ.</span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
     <script type="importmap">

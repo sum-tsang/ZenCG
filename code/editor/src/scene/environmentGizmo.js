@@ -1,3 +1,4 @@
+// Environment gizmo scene.
 import * as THREE from "three";
 
 // Gizmo
@@ -12,18 +13,18 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
-  camera.position.set(0, 0, 3.2);
+  camera.position.set(0, 0, 3.8);
 
   const axesGroup = new THREE.Group();
   const origin = new THREE.Vector3(0, 0, 0);
   const arrowLength = 1.1;
   const headLength = 0.32;
   const headWidth = 0.22;
-  const negativeArrowLength = 0.75;
-  const negativeHeadLength = 0.22;
-  const negativeHeadWidth = 0.16;
+  const negativeArrowLength = arrowLength;
+  const negativeHeadLength = headLength;
+  const negativeHeadWidth = headWidth;
   const labelOffset = arrowLength + 0.18;
-  const negativeLabelOffset = negativeArrowLength + 0.16;
+  const negativeLabelOffset = labelOffset;
 
   const createAxisLabel = (text, color, scale = 0.35) => {
     const size = 128;
@@ -114,9 +115,9 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
   const xLabel = createAxisLabel("X", "#ff3b30");
   const yLabel = createAxisLabel("Y", "#34c759");
   const zLabel = createAxisLabel("Z", "#0a84ff");
-  const xNegLabel = createAxisLabel("-X", "#ff3b30", 0.28);
-  const yNegLabel = createAxisLabel("-Y", "#34c759", 0.28);
-  const zNegLabel = createAxisLabel("-Z", "#0a84ff", 0.28);
+  const xNegLabel = createAxisLabel("-X", "#ff3b30", 0.35);
+  const yNegLabel = createAxisLabel("-Y", "#34c759", 0.35);
+  const zNegLabel = createAxisLabel("-Z", "#0a84ff", 0.35);
   if (xLabel) {
     xLabel.position.set(labelOffset, 0, 0);
     axesGroup.add(xLabel);
@@ -141,6 +142,7 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
     zNegLabel.position.set(0, 0, -negativeLabelOffset);
     axesGroup.add(zNegLabel);
   }
+  axesGroup.scale.setScalar(1.05);
   scene.add(axesGroup);
 
   // Resize the gizmo renderer to match its canvas.

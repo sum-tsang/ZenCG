@@ -1,4 +1,7 @@
+// Render loop wiring.
 // Register resize handling and start the render loop.
+import { updateMultiSelectionOutlines } from "./selection.js";
+
 export function setupResizeAndRender({
   dom,
   camera,
@@ -6,7 +9,9 @@ export function setupResizeAndRender({
   scene,
   target,
   selectionHelper,
+  multiSelectionGroup,
   getCurrentObject,
+  getSelectedObjects,
   transformationManager,
   envGizmo,
   setStatus,
@@ -28,6 +33,10 @@ export function setupResizeAndRender({
     const currentObject = getCurrentObject?.();
     if (currentObject && selectionHelper?.visible) {
       selectionHelper.setFromObject(currentObject);
+    }
+    if (multiSelectionGroup) {
+      const selectedObjects = getSelectedObjects?.() ?? [];
+      updateMultiSelectionOutlines(multiSelectionGroup, selectedObjects, currentObject);
     }
     if (currentObject && transformationManager?.gizmo) {
       transformationManager.gizmo.updateGizmoPosition();
