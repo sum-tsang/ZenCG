@@ -116,7 +116,7 @@ export function setupShortcuts({
       return;
     }
 
-    if (key === "g") {
+    if (key === "t") {
       event.preventDefault();
       transformationManager.setMode("translate");
     } else if (key === "r") {
