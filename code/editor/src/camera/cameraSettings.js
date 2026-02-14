@@ -61,11 +61,106 @@ function createZoom({ camera, target }) {
   };
 }
 
+// Create arrow key movement handler for camera panning across XZ plane
+function createArrowKeyMovement({ camera, target }) {
+  const moveSpeed = 0.15;
+  const keysPressed = new Set();
+  const moveDirection = new THREE.Vector3();
+  const forward = new THREE.Vector3();
+  const right = new THREE.Vector3();
+
+  function updateMovement() {
+    if (keysPressed.size === 0) return;
+
+    // Get camera's forward direction projected onto XZ plane
+    camera.getWorldDirection(forward);
+    forward.y = 0;
+    forward.normalize();
+
+    // Get camera's right direction
+    right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+    moveDirection.set(0, 0, 0);
+
+    if (keysPressed.has("ArrowUp")) moveDirection.add(forward);
+    if (keysPressed.has("ArrowDown")) moveDirection.sub(forward);
+    if (keysPressed.has("ArrowLeft")) moveDirection.sub(right);
+    if (keysPressed.has("ArrowRight")) moveDirection.add(right);
+
+    if (moveDirection.length() > 0) {
+      moveDirection.normalize().multiplyScalar(moveSpeed);
+      camera.position.add(moveDirection);
+      target.add(moveDirection);
+    }
+  }
+
+  let animationId = null;
+
+  function animate() {
+    updateMovement();
+    if (keysPressed.size > 0) {
+      animationId = requestAnimationFrame(animate);
+    }
+  }
+
+  function onKeyDown(event) {
+    // Don't capture if typing in input fields
+    if (
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement ||
+      event.target?.isContentEditable
+    ) {
+      return;
+    }
+
+    const key = event.key;
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
+      event.preventDefault();
+      const wasEmpty = keysPressed.size === 0;
+      keysPressed.add(key);
+      if (wasEmpty) {
+        animate();
+      }
+    }
+  }
+
+  function onKeyUp(event) {
+    const key = event.key;
+    keysPressed.delete(key);
+    if (keysPressed.size === 0 && animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+  }
+
+  function onBlur() {
+    keysPressed.clear();
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+  }
+
+  document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("keyup", onKeyUp);
+  window.addEventListener("blur", onBlur);
+
+  return function cleanup() {
+    document.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("keyup", onKeyUp);
+    window.removeEventListener("blur", onBlur);
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+    }
+  };
+}
+
 // Attach Camera Controls
 export function attachCameraControls({ canvas, camera, target, renderer }) {
   const pan = createPan({ camera, target, renderer });
   const orbit = createOrbit({ camera, target });
   const zoom = createZoom({ camera, target });
+  const cleanupArrowKeys = createArrowKeyMovement({ camera, target });
   let mode = null;
   let lastPointerX = 0;
   let lastPointerY = 0;
@@ -144,5 +239,6 @@ export function attachCameraControls({ canvas, camera, target, renderer }) {
     canvas.removeEventListener("pointerup", onPointerUp);
     canvas.removeEventListener("pointerleave", onPointerLeave);
     canvas.removeEventListener("wheel", onWheel);
+    cleanupArrowKeys();
   };
 }

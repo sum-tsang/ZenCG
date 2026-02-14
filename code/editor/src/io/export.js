@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-import * as THREE from "three";
-=======
 // OBJ export pipeline.
->>>>>>> 73763f094f1b648a9601aef0c04717d6b025c542
+import * as THREE from "three";
 import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
 
 const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
@@ -133,11 +130,7 @@ function textureToBlob(texture) {
 }
 
 // Wire up OBJ export button handling.
-<<<<<<< HEAD
-export function setupObjExport({ button, getObject, getAllObjects, setStatus }) {
-=======
-export function setupObjExport({ button, getObject, getFilename, setStatus }) {
->>>>>>> 73763f094f1b648a9601aef0c04717d6b025c542
+export function setupObjExport({ button, getObject, getAllObjects, getFilename, setStatus }) {
   if (!(button instanceof HTMLButtonElement)) {
     throw new Error("OBJ export button not found.");
   }
@@ -210,17 +203,16 @@ export function setupObjExport({ button, getObject, getFilename, setStatus }) {
 
     // If there are textures, we need to export as a zip
     if (textures.length > 0) {
-<<<<<<< HEAD
       setStatus?.(statusPrefix + "Exporting with textures...");
-      await exportAsZip(objOutput, mtl, textures, setStatus);
+      await exportAsZip(objOutput, mtl, textures, setStatus, baseName);
     } else if (mtl) {
       // Export both OBJ and MTL files
-      downloadFile(objOutput, "zencg-export.obj", "text/plain");
-      downloadFile(mtl, "zencg-export.mtl", "text/plain");
+      downloadFile(objOutput, objFilename, "text/plain");
+      downloadFile(mtl, mtlFilename, "text/plain");
       setStatus?.(statusPrefix + "Exported OBJ + MTL.");
     } else {
       // No materials, just export OBJ
-      downloadFile(objOutput, "zencg-export.obj", "text/plain");
+      downloadFile(objOutput, objFilename, "text/plain");
       setStatus?.(statusPrefix + "Exported OBJ.");
     }
     
@@ -236,19 +228,6 @@ export function setupObjExport({ button, getObject, getFilename, setStatus }) {
           }
         }
       });
-=======
-      setStatus?.("Exporting with textures...");
-      await exportAsZip(objOutput, mtl, textures, setStatus, baseName);
-    } else if (mtl) {
-      // Export both OBJ and MTL files
-      downloadFile(objOutput, objFilename, "text/plain");
-      downloadFile(mtl, mtlFilename, "text/plain");
-      setStatus?.("Exported OBJ + MTL.");
-    } else {
-      // No materials, just export OBJ
-      downloadFile(objOutput, objFilename, "text/plain");
-      setStatus?.("Exported OBJ.");
->>>>>>> 73763f094f1b648a9601aef0c04717d6b025c542
     }
   });
 }

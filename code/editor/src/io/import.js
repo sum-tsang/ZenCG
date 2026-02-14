@@ -398,16 +398,12 @@ export function setupImportExport({
 
   setupObjExport({
     button: dom.exportButton,
-<<<<<<< HEAD
-    getObject: () => store.getState().currentObject,
-    getAllObjects: () => store.getState().importedObjects,
-=======
     getObject:
       typeof getExportTarget === "function"
         ? getExportTarget
         : () => store.getState().currentObject,
+    getAllObjects: () => store.getState().importedObjects,
     getFilename: getExportFilename,
->>>>>>> 73763f094f1b648a9601aef0c04717d6b025c542
     setStatus,
   });
 
