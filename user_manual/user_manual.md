@@ -116,7 +116,7 @@ The main control panel contains two tabs: the **Controls** tab and the **Models*
 
 **Controls Tab**
 
-The Controls tab serves as the primary management area of the application. It allows users to import and export OBJ files and manage objects within the scene. An object list displays all loaded OBJs in the environment. Selecting an object from the list also selects it within the viewport. A bin icon allows users to remove objects directly from the list.
+The Controls tab serves as the primary management area of the application. It allows users to import and export OBJ files and manage objects within the scene. An object list displays all loaded OBJs in the environment. Selecting an object from the list also selects it within the viewport. A **Delete** button beside each object allows users to remove objects directly from the list.
 
 Selected objects can be renamed using the text field located directly beneath the object list.
 
@@ -138,7 +138,7 @@ The transform and camera control panel provides direct access to transformation 
 
 **Transform Tab**
 
-The Transform tab contains controls for moving, rotating, and scaling selected objects. In addition to interactive manipulation, numerical input fields are provided for the X, Y, and Z axes, allowing users to apply precise transformations. Controls are also available for negative axis directions (-X, -Y, and -Z), enabling transformations in opposite directions along each axis.
+The Transform tab contains controls for moving, rotating, and scaling selected objects. In addition to interactive manipulation, numerical input fields are provided for the X, Y, and Z axes, allowing users to apply precise transformations. Axis-constrained transforms are supported on X, Y, and Z, and movement is possible in both positive and negative directions.
 
 ![Transform tab with transform controls](diagrams/0005_transform_tab.jpg)
 *Figure 8.2.3 Transform and Camera Control Panel - Transform tab controls.*
@@ -152,7 +152,7 @@ The Camera tab provides buttons mapped to predefined X, Y, and Z viewpoints, as 
 
 #### 8.2.3 Footer Panel
 
-The footer panel displays contextual information related to the current state of the application. This may include status indicators, selection feedback, or other non-interactive information that assists users in understanding the current environment. The panel is designed to remain unobtrusive while providing relevant feedback during interaction.
+The footer panel displays contextual information related to the current state of the application. It includes tool context, recent action status, and direct **Undo/Redo** controls. The panel is designed to remain unobtrusive while still providing useful feedback during interaction.
 
 ![Footer panel status and undo redo area](diagrams/0007_footer_panel.jpg)
 *Figure 8.2.5 Footer panel and status controls.*
@@ -244,9 +244,6 @@ This section walks through the most common workflows in ZenCG. The steps are wri
 
 **Expected Result:** The model is loaded and ready for editing.
 
-![Import OBJ from local storage](diagrams/0008_import_obj.jpg)
-*Figure 10.1 OBJ/MTL import example.*
-
 ### 10.2 Import a Model from the Model Library
 
 1. Open the **Models** tab in the main panel.
@@ -277,9 +274,6 @@ This section walks through the most common workflows in ZenCG. The steps are wri
 
 **Expected Result:** The model has the new transform values.
 
-![Move rotate and scale example](diagrams/0009_transform_example.jpg)
-*Figure 10.2 Transform operation example.*
-
 ### 10.5 Reset a Model to Its Default Transform
 
 1. Select the model to reset.
@@ -299,12 +293,9 @@ This section walks through the most common workflows in ZenCG. The steps are wri
 
 **Expected Result:** The model is split into separate components.
 
-![After component split result](diagrams/0010_component_split_after.jpg)
-*Figure 10.3 Component split result after confirming (inside and outside components).*
-
 ### 10.7 Combine Multiple Models
 
-1. Multi-select the models you want to merge in the object list.
+1. Select one model in the object list, then right-click additional models to add them to the multi-selection.
 2. In the **Transform** tab, click **Combine Models**.
 3. Wait for the operation to complete.
 4. Confirm that a single combined model appears in the object list.
@@ -321,9 +312,6 @@ This section walks through the most common workflows in ZenCG. The steps are wri
 5. If needed, click **Remove** to clear the texture.
 
 **Expected Result:** The model material is updated with new colour and/or texture.
-
-![Material panel colour and texture example](diagrams/0011_material_texture.jpg)
-*Figure 10.4 Material colour and texture editing example.*
 
 ### 10.9 Copy, Paste, and Duplicate Models
 
@@ -355,9 +343,6 @@ This section walks through the most common workflows in ZenCG. The steps are wri
 
 **Expected Result:** You can move the camera and switch to preset views as needed.
 
-![Camera preset axis views](diagrams/0012_camera_presets.jpg)
-*Figure 10.5 Camera preset view example.*
-
 ### 10.12 Undo and Redo Changes
 
 1. Perform an edit operation in the scene.
@@ -387,9 +372,6 @@ This section walks through the most common workflows in ZenCG. The steps are wri
 
 **Expected Result:** The selected model is exported as `.OBJ`, with `.MTL` data when available.
 
-![Export selected model settings](diagrams/0013_export_selected.jpg)
-*Figure 10.6 Export selected model example.*
-
 ### 10.15 Export the Full Scene
 
 1. Ensure all required models are loaded in the scene.
@@ -399,9 +381,6 @@ This section walks through the most common workflows in ZenCG. The steps are wri
 5. Check your downloads for the exported scene files.
 
 **Expected Result:** The full scene is exported as one `.OBJ`, with `.MTL` data when available.
-
-![Export whole scene enabled](diagrams/0014_export_scene.jpg)
-*Figure 10.7 Export full scene example.*
 
 ### 10.16 Restore the Previous Session
 
@@ -421,7 +400,7 @@ This section walks through the most common workflows in ZenCG. The steps are wri
 
 Common shortcuts:
 
-* `G`: Set transform mode to move.
+* `T`: Set transform mode to move.
 * `R`: Set transform mode to rotate.
 * `S`: Set transform mode to scale.
 * `X`, `Y`, `Z`: Start axis-locked transform on the selected axis.
@@ -444,7 +423,7 @@ Common shortcuts:
 
 ### 11.1 Keyboard Shortcuts
 
-* Move mode: `G`
+* Move mode: `T`
 * Rotate mode: `R`
 * Scale mode: `S`
 * Axis lock: `X`, `Y`, `Z`
@@ -508,7 +487,7 @@ This section lists common issues users may face in ZenCG and practical ways to f
 
 * Transform tools are not working. Possible cause: no object is selected. Recommended action: select a model from the object list first.
 * Rename field is unavailable. Possible cause: no active model selection. Recommended action: select an object and retry rename.
-* Combine option cannot be used. Possible cause: not enough models selected. Recommended action: multi-select at least two models.
+* Combine option cannot be used. Possible cause: not enough models selected. Recommended action: select one model, then right-click at least one additional model in the object list.
 * Undo does not change anything. Possible cause: no recent reversible action. Recommended action: perform an edit and use **Undo** again.
 
 ### 13.3 Export Issues
