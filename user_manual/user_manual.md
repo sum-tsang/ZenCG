@@ -50,11 +50,11 @@ As ZenCG is a web-based application, no installation is required. To access the 
 
 The device GPU must support WebGL 2.0 or later. Application performance depends on the capabilities of the device CPU, GPU, and available memory. The minimum hardware requirements for basic functionality are listed below:
 
-* **CPU:** Any modern dual-core processor (e.g., Intel i3 or equivalent)
-* **GPU:** Integrated graphics with WebGL support (e.g., Intel HD Graphics, AMD Vega, or older NVIDIA GPUs)
-* **RAM:** 4 GB
-* **Display:** 1280 × 720 resolution
-* **Input Devices:** Mouse and keyboard
+- **CPU:** Any modern dual-core processor (e.g., Intel i3 or equivalent)
+- **GPU:** Integrated graphics with WebGL support (e.g., Intel HD Graphics, AMD Vega, or older NVIDIA GPUs)
+- **RAM:** 4 GB
+- **Display:** 1280 × 720 resolution
+- **Input Devices:** Mouse and keyboard
 
 For optimal performance, it is recommended to use an up-to-date web browser that supports modern web standards and hardware-accelerated graphics. A mouse and keyboard are strongly recommended for effective interaction with the 3D editor.
 
@@ -84,7 +84,7 @@ Users can orbit, pan, and zoom around the scene using the mouse, and adjust thei
 
 The purpose of this section is to help users get started by initialising a project. Individual features and tools will be explored in greater detail in later sections.
 
-![ZenCG editor initial view](diagrams/0001_editor_start.jpg)
+ZenCG editor initial view
 *Figure 7.1 ZenCG editor at launch.*
 
 ---
@@ -99,11 +99,11 @@ The viewport is a three-dimensional environment that allows users to view their 
 
 The gridlines are colour-coordinated as follows:
 
-* **X-axis:** Red
-* **Y-axis:** Green
-* **Z-axis:** Blue
+- **X-axis:** Red
+- **Y-axis:** Green
+- **Z-axis:** Blue
 
-![ZenCG viewport with grid and gizmo](diagrams/0002_viewport.jpg)
+ZenCG viewport with grid and gizmo
 *Figure 8.1 Viewport, axes, and scene orientation reference.*
 
 ### 8.2 Control Panels
@@ -120,7 +120,7 @@ The Controls tab serves as the primary management area of the application. It al
 
 Selected objects can be renamed using the text field located directly beneath the object list.
 
-![Main panel Controls tab](diagrams/0003_controls_tab.jpg)
+Main panel Controls tab
 *Figure 8.2.1 Main Control Panel - Controls tab.*
 
 **Models Tab**
@@ -129,7 +129,7 @@ The Models tab provides access to the built-in model library. This library allow
 
 The model library is intended to support rapid prototyping and experimentation, allowing users to quickly populate a scene with sample geometry.
 
-![Main panel Models tab](diagrams/0004_models_tab.jpg)
+Main panel Models tab
 *Figure 8.2.2 Main Control Panel - Models tab.*
 
 #### 8.2.2 Transform and Camera Control Panel
@@ -140,21 +140,21 @@ The transform and camera control panel provides direct access to transformation 
 
 The Transform tab contains controls for moving, rotating, and scaling selected objects. In addition to interactive manipulation, numerical input fields are provided for the X, Y, and Z axes, allowing users to apply precise transformations. Axis-constrained transforms are supported on X, Y, and Z, and movement is possible in both positive and negative directions.
 
-![Transform tab with transform controls](diagrams/0005_transform_tab.jpg)
+Transform tab with transform controls
 *Figure 8.2.3 Transform and Camera Control Panel - Transform tab controls.*
 
 **Camera Tab**
 
 The Camera tab provides buttons mapped to predefined X, Y, and Z viewpoints, as well as their corresponding negative directions. These controls allow users to quickly align the camera to standard orthographic perspectives, supporting accurate inspection and alignment of objects from multiple orientations.
 
-![Transform and Camera panel with Camera tab preset views](diagrams/0006_camera_tab.jpg)
+Transform and Camera panel with Camera tab preset views
 *Figure 8.2.4 Transform and Camera Control Panel - Camera tab preset views.*
 
 #### 8.2.3 Footer Panel
 
 The footer panel displays contextual information related to the current state of the application. It includes tool context, recent action status, and direct **Undo/Redo** controls. The panel is designed to remain unobtrusive while still providing useful feedback during interaction.
 
-![Footer panel status and undo redo area](diagrams/0007_footer_panel.jpg)
+Footer panel status and undo redo area
 *Figure 8.2.5 Footer panel and status controls.*
 
 ### 8.3 Navigation and Camera Controls
@@ -400,20 +400,20 @@ This section walks through the most common workflows in ZenCG. The steps are wri
 
 Common shortcuts:
 
-* `T`: Set transform mode to move.
-* `R`: Set transform mode to rotate.
-* `S`: Set transform mode to scale.
-* `X`, `Y`, `Z`: Start axis-locked transform on the selected axis.
-* `Enter`: Confirm the active axis-locked transform.
-* `Esc`: Cancel the active axis-locked transform.
-* `C`: Combine selected models.
-* `D`: Duplicate selected model(s).
-* `Ctrl/Cmd + C`: Copy selected model(s).
-* `Ctrl/Cmd + V`: Paste copied model(s).
-* `Ctrl/Cmd + Z`: Undo the most recent action.
-* `Ctrl/Cmd + Shift + Z` or `Ctrl/Cmd + Y`: Redo the most recently undone action.
-* `Delete` or `Backspace`: Delete the selected model.
-* `Shift + Delete`: Clear the scene.
+- `T`: Set transform mode to move.
+- `R`: Set transform mode to rotate.
+- `S`: Set transform mode to scale.
+- `X`, `Y`, `Z`: Start axis-locked transform on the selected axis.
+- `Enter`: Confirm the active axis-locked transform.
+- `Esc`: Cancel the active axis-locked transform.
+- `C`: Combine selected models.
+- `D`: Duplicate selected model(s).
+- `Ctrl/Cmd + C`: Copy selected model(s).
+- `Ctrl/Cmd + V`: Paste copied model(s).
+- `Ctrl/Cmd + Z`: Undo the most recent action.
+- `Ctrl/Cmd + Shift + Z` or `Ctrl/Cmd + Y`: Redo the most recently undone action.
+- `Delete` or `Backspace`: Delete the selected model.
+- `Shift + Delete`: Clear the scene.
 
 **Expected Result:** You can do common actions faster by using keyboard shortcuts.
 
@@ -423,23 +423,23 @@ Common shortcuts:
 
 ### 11.1 Keyboard Shortcuts
 
-* Move mode: `T`
-* Rotate mode: `R`
-* Scale mode: `S`
-* Axis lock: `X`, `Y`, `Z`
-* Undo: `Ctrl/Cmd + Z`
-* Redo: `Ctrl/Cmd + Shift + Z` or `Ctrl/Cmd + Y`
-* Copy / Paste: `Ctrl/Cmd + C`, `Ctrl/Cmd + V`
-* Duplicate: `D`
-* Combine models: `C`
-* Delete selected: `Delete` or `Backspace`
-* Clear scene: `Shift + Delete`
+- Move mode: `T`
+- Rotate mode: `R`
+- Scale mode: `S`
+- Axis lock: `X`, `Y`, `Z`
+- Undo: `Ctrl/Cmd + Z`
+- Redo: `Ctrl/Cmd + Shift + Z` or `Ctrl/Cmd + Y`
+- Copy / Paste: `Ctrl/Cmd + C`, `Ctrl/Cmd + V`
+- Duplicate: `D`
+- Combine models: `C`
+- Delete selected: `Delete` or `Backspace`
+- Clear scene: `Shift + Delete`
 
 ### 11.2 Mouse Controls
 
-* Orbit camera: Left mouse drag
-* Pan camera: Middle mouse drag
-* Zoom camera: Mouse wheel
+- Orbit camera: Left mouse drag
+- Pan camera: Middle mouse drag
+- Zoom camera: Mouse wheel
 
 ---
 
@@ -449,11 +449,11 @@ ZenCG model file support is limited to OBJ/MTL. This section explains how import
 
 ### 12.1 Supported File Types
 
-* Model input: `.OBJ` for model geometry.
-* Model input: `.MTL` for material data (if available).
-* Texture input: `.png`, `.jpg`, `.jpeg` for texture upload.
-* Export output: `.OBJ` for exported model or scene geometry.
-* Export output: `.MTL` for exported material data (if available).
+- Model input: `.OBJ` for model geometry.
+- Model input: `.MTL` for material data (if available).
+- Texture input: `.png`, `.jpg`, `.jpeg` for texture upload.
+- Export output: `.OBJ` for exported model or scene geometry.
+- Export output: `.MTL` for exported material data (if available).
 
 ### 12.2 Import Reference
 
@@ -467,9 +467,9 @@ ZenCG can export either a selected model or the full scene, depending on **Expor
 
 ZenCG uses **Export Filename** as the base export name. Invalid filename characters are normalised during export, and file extensions entered in the field are removed before output files are generated.
 
-* Geometry only: `.OBJ`
-* Geometry with material data: `.OBJ` and `.MTL`
-* Geometry with material data and textures: `.OBJ`, `.MTL`, and texture image files
+- Geometry only: `.OBJ`
+- Geometry with material data: `.OBJ` and `.MTL`
+- Geometry with material data and textures: `.OBJ`, `.MTL`, and texture image files
 
 ---
 
@@ -479,28 +479,28 @@ This section lists common issues users may face in ZenCG and practical ways to f
 
 ### 13.1 Import Issues
 
-* Model does not appear after import. Possible cause: invalid or unsupported OBJ content. Recommended action: try a different `.OBJ` file and import again.
-* Model imports without material. Possible cause: matching `.MTL` file was not included. Recommended action: import `.OBJ` and `.MTL` together.
-* Texture is not visible. Possible cause: texture file is missing or unsupported. Recommended action: reapply texture using `.png`, `.jpg`, or `.jpeg`.
+- Model does not appear after import. Possible cause: invalid or unsupported OBJ content. Recommended action: try a different `.OBJ` file and import again.
+- Model imports without material. Possible cause: matching `.MTL` file was not included. Recommended action: import `.OBJ` and `.MTL` together.
+- Texture is not visible. Possible cause: texture file is missing or unsupported. Recommended action: reapply texture using `.png`, `.jpg`, or `.jpeg`.
 
 ### 13.2 Selection and Editing Issues
 
-* Transform tools are not working. Possible cause: no object is selected. Recommended action: select a model from the object list first.
-* Rename field is unavailable. Possible cause: no active model selection. Recommended action: select an object and retry rename.
-* Combine option cannot be used. Possible cause: not enough models selected. Recommended action: select one model, then right-click at least one additional model in the object list.
-* Undo does not change anything. Possible cause: no recent reversible action. Recommended action: perform an edit and use **Undo** again.
+- Transform tools are not working. Possible cause: no object is selected. Recommended action: select a model from the object list first.
+- Rename field is unavailable. Possible cause: no active model selection. Recommended action: select an object and retry rename.
+- Combine option cannot be used. Possible cause: not enough models selected. Recommended action: select one model, then right-click at least one additional model in the object list.
+- Undo does not change anything. Possible cause: no recent reversible action. Recommended action: perform an edit and use **Undo** again.
 
 ### 13.3 Export Issues
 
-* **Export OBJ** is disabled. Possible cause: no valid export target. Recommended action: select a model or enable **Export Whole Scene**.
-* Exported files are not found. Possible cause: browser download location is unclear. Recommended action: check browser downloads/history.
-* Expected material file is missing. Possible cause: no material data on exported object(s). Recommended action: confirm material was applied before export.
+- **Export OBJ** is disabled. Possible cause: no valid export target. Recommended action: select a model or enable **Export Whole Scene**.
+- Exported files are not found. Possible cause: browser download location is unclear. Recommended action: check browser downloads/history.
+- Expected material file is missing. Possible cause: no material data on exported object(s). Recommended action: confirm material was applied before export.
 
 ### 13.4 Session Recovery Issues
 
-* Previous session does not restore. Possible cause: browser storage was cleared. Recommended action: re-import files manually.
-* Restored scene is incomplete. Possible cause: some previous data was not saved. Recommended action: reopen editor and continue from the latest available state.
-* Restore behaviour is inconsistent. Possible cause: browser privacy/storage settings. Recommended action: use default browser storage settings and retry.
+- Previous session does not restore. Possible cause: browser storage was cleared. Recommended action: re-import files manually.
+- Restored scene is incomplete. Possible cause: some previous data was not saved. Recommended action: reopen editor and continue from the latest available state.
+- Restore behaviour is inconsistent. Possible cause: browser privacy/storage settings. Recommended action: use default browser storage settings and retry.
 
 ---
 
@@ -532,13 +532,14 @@ Session recovery depends on browser storage availability. Clearing browser data 
 
 ## 15. Glossary
 
-* OBJ: A text-based 3D geometry file format used for model meshes.
-* MTL: A companion material file used with OBJ models.
-* Viewport: The main 3D viewing area where models are displayed and edited.
-* Gizmo: On-screen transform control used for move, rotate, and scale operations.
-* Transform: A change in object position, rotation, or scale.
-* Axis: A directional reference (`X`, `Y`, `Z`) used for movement and orientation.
-* Model Library: Built-in collection of preset models available for quick insertion.
-* Export Whole Scene: Option to export all loaded scene objects as one output.
-* Action History: List of recent actions performed in the editor.
-* Session Recovery: Process of restoring previously saved scene state from browser storage.
+- OBJ: A text-based 3D geometry file format used for model meshes.
+- MTL: A companion material file used with OBJ models.
+- Viewport: The main 3D viewing area where models are displayed and edited.
+- Gizmo: On-screen transform control used for move, rotate, and scale operations.
+- Transform: A change in object position, rotation, or scale.
+- Axis: A directional reference (`X`, `Y`, `Z`) used for movement and orientation.
+- Model Library: Built-in collection of preset models available for quick insertion.
+- Export Whole Scene: Option to export all loaded scene objects as one output.
+- Action History: List of recent actions performed in the editor.
+- Session Recovery: Process of restoring previously saved scene state from browser storage.
+

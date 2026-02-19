@@ -1,8 +1,191 @@
-// OBJ/MTL import pipeline.
 import * as THREE from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
-import { setupObjExport } from "./export.js";
+import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
+
+const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1F]/g;
+
+function normalizeExportBaseName(name, fallback = "zencg-export") {
+  const raw = typeof name === "string" ? name.trim() : "";
+  if (!raw) return fallback;
+  const cleaned = raw.replace(INVALID_FILENAME_CHARS, "-").replace(/\s+/g, " ").trim();
+  const withoutExtension = cleaned.replace(/\.(obj|mtl|zip)$/i, "");
+  return withoutExtension || fallback;
+}
+
+function generateMtlContent(object, textures) {
+  const materials = new Map();
+  let materialIndex = 0;
+
+  object.traverse((child) => {
+    if (child.isMesh && child.material) {
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach((mat) => {
+        if (!materials.has(mat.uuid)) {
+          const name = mat.name || `material_${materialIndex++}`;
+          materials.set(mat.uuid, { material: mat, name });
+        }
+      });
+    }
+  });
+
+  if (materials.size === 0) return { mtl: null, materialMap: new Map() };
+
+  let mtlContent = "# ZenCG Material Export\n\n";
+  const materialMap = new Map();
+
+  materials.forEach(({ material, name }) => {
+    materialMap.set(material.uuid, name);
+    mtlContent += `newmtl ${name}\n`;
+    mtlContent += "Ka 0.2 0.2 0.2\n";
+
+    if (material.color) {
+      const c = material.color;
+      mtlContent += `Kd ${c.r.toFixed(6)} ${c.g.toFixed(6)} ${c.b.toFixed(6)}\n`;
+    } else {
+      mtlContent += "Kd 0.8 0.8 0.8\n";
+    }
+
+    if (material.specular) {
+      const s = material.specular;
+      mtlContent += `Ks ${s.r.toFixed(6)} ${s.g.toFixed(6)} ${s.b.toFixed(6)}\n`;
+    } else {
+      mtlContent += "Ks 0.0 0.0 0.0\n";
+    }
+
+    const roughness = material.roughness ?? 0.5;
+    const shininess = Math.max(1, (1 - roughness) * 100);
+    mtlContent += `Ns ${shininess.toFixed(6)}\n`;
+
+    const opacity = material.opacity ?? 1.0;
+    mtlContent += `d ${opacity.toFixed(6)}\n`;
+    mtlContent += "illum 2\n";
+
+    if (material.map && material.map.image) {
+      const textureName = `${name}_diffuse.png`;
+      textures.push({ name: textureName, texture: material.map });
+      mtlContent += `map_Kd ${textureName}\n`;
+    }
+
+    mtlContent += "\n";
+  });
+
+  return { mtl: mtlContent, materialMap };
+}
+
+function textureToBlob(texture) {
+  return new Promise((resolve) => {
+    if (!texture.image) {
+      resolve(null);
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    const img = texture.image;
+    canvas.width = img.width || 256;
+    canvas.height = img.height || 256;
+    const ctx = canvas.getContext("2d");
+
+    try {
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((blob) => resolve(blob), "image/png");
+    } catch (error) {
+      console.warn("Could not export texture:", error);
+      resolve(null);
+    }
+  });
+}
+
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportAsZip(objContent, mtlContent, textures, setStatus, baseName) {
+  const safeBaseName = normalizeExportBaseName(baseName);
+  const objFilename = `${safeBaseName}.obj`;
+  const mtlFilename = `${safeBaseName}.mtl`;
+
+  downloadFile(objContent, objFilename, "text/plain");
+
+  if (mtlContent) {
+    downloadFile(mtlContent, mtlFilename, "text/plain");
+  }
+
+  for (const { name, texture } of textures) {
+    const blob = await textureToBlob(texture);
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  setStatus?.(`Exported OBJ + MTL + ${textures.length} texture(s).`);
+}
+
+// Wire export button behavior for current object or scene target.
+export function setupObjExport({ button, getObject, getFilename, setStatus }) {
+  if (!(button instanceof HTMLButtonElement)) {
+    throw new Error("OBJ export button not found.");
+  }
+
+  const exporter = new OBJExporter();
+
+  button.addEventListener("click", async () => {
+    const object = getObject?.();
+    if (!object) {
+      setStatus?.("No model to export.");
+      return;
+    }
+
+    const baseName = normalizeExportBaseName(
+      typeof getFilename === "function" ? getFilename() : "",
+      normalizeExportBaseName(object?.name || "")
+    );
+    const objFilename = `${baseName}.obj`;
+    const mtlFilename = `${baseName}.mtl`;
+
+    const textures = [];
+    const { mtl, materialMap } = generateMtlContent(object, textures);
+
+    object.traverse((child) => {
+      if (child.isMesh && child.material) {
+        const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+        const mtlName = materialMap.get(mat.uuid);
+        if (mtlName) {
+          mat.name = mtlName;
+        }
+      }
+    });
+
+    let objOutput = exporter.parse(object);
+
+    if (mtl) {
+      objOutput = `mtllib ${mtlFilename}\n` + objOutput;
+    }
+
+    if (textures.length > 0) {
+      setStatus?.("Exporting with textures...");
+      await exportAsZip(objOutput, mtl, textures, setStatus, baseName);
+    } else if (mtl) {
+      downloadFile(objOutput, objFilename, "text/plain");
+      downloadFile(mtl, mtlFilename, "text/plain");
+      setStatus?.("Exported OBJ + MTL.");
+    } else {
+      downloadFile(objOutput, objFilename, "text/plain");
+      setStatus?.("Exported OBJ.");
+    }
+  });
+}
 
 const DEBUG_IMPORT = false;
 const debug = (...args) => {
@@ -11,72 +194,57 @@ const debug = (...args) => {
   }
 };
 
-// Convert MTL materials (MeshPhongMaterial) to MeshStandardMaterial for better rendering
-// Also applies default material to meshes without any material
 function convertToStandardMaterial(object) {
   object.traverse((child) => {
-    if (child.isMesh) {
-      // If mesh has no material, create a default one
-      if (!child.material) {
-        debug("[Import] Mesh has no material, applying default:", child.name);
-        child.material = new THREE.MeshStandardMaterial({
-          color: 0x808080,
-          roughness: 0.7,
-          metalness: 0.0,
-          side: THREE.DoubleSide,
-        });
-        return;
+    if (!child.isMesh) return;
+
+    if (!child.material) {
+      debug("[Import] Mesh has no material, applying default:", child.name);
+      child.material = new THREE.MeshStandardMaterial({
+        color: 0x808080,
+        roughness: 0.7,
+        metalness: 0.0,
+        side: THREE.DoubleSide,
+      });
+      return;
+    }
+
+    const mats = Array.isArray(child.material) ? child.material : [child.material];
+    const convertedMats = mats.map((mat) => {
+      if (mat.isMeshStandardMaterial) return mat;
+
+      debug("[Import] Converting material:", mat.name, "type:", mat.type);
+      debug("[Import] Original color:", mat.color?.getHexString(), "diffuse:", mat.diffuse?.getHexString());
+
+      let color = new THREE.Color(0x808080);
+      if (mat.color && (mat.color.r > 0 || mat.color.g > 0 || mat.color.b > 0)) {
+        color = mat.color.clone();
+      } else if (mat.diffuse && (mat.diffuse.r > 0 || mat.diffuse.g > 0 || mat.diffuse.b > 0)) {
+        color = mat.diffuse.clone();
       }
 
-      const mats = Array.isArray(child.material) ? child.material : [child.material];
-      const convertedMats = mats.map((mat) => {
-        // Skip if already a MeshStandardMaterial
-        if (mat.isMeshStandardMaterial) return mat;
-
-        debug("[Import] Converting material:", mat.name, "type:", mat.type);
-        debug("[Import] Original color:", mat.color?.getHexString(), "diffuse:", mat.diffuse?.getHexString());
-
-        // Get color from the material - MTL uses 'color' for Kd (diffuse)
-        let color = new THREE.Color(0x808080); // Default gray
-        
-        if (mat.color && (mat.color.r > 0 || mat.color.g > 0 || mat.color.b > 0)) {
-          color = mat.color.clone();
-        } else if (mat.diffuse && (mat.diffuse.r > 0 || mat.diffuse.g > 0 || mat.diffuse.b > 0)) {
-          color = mat.diffuse.clone();
-        }
-
-        debug("[Import] Using color:", color.getHexString());
-
-        // Create new standard material with properties from the old one
-        const newMat = new THREE.MeshStandardMaterial({
-          color: color,
-          roughness: mat.shininess ? Math.max(0.1, 1 - mat.shininess / 100) : 0.7,
-          metalness: 0.0,
-          transparent: mat.transparent || false,
-          opacity: mat.opacity ?? 1.0,
-          side: THREE.DoubleSide, // Use double side to avoid culling issues
-        });
-
-        // Copy texture if present
-        if (mat.map) {
-          newMat.map = mat.map;
-        }
-
-        // Copy name
-        newMat.name = mat.name || "";
-
-        // Dispose old material
-        mat.dispose();
-
-        return newMat;
+      const newMat = new THREE.MeshStandardMaterial({
+        color,
+        roughness: mat.shininess ? Math.max(0.1, 1 - mat.shininess / 100) : 0.7,
+        metalness: 0.0,
+        transparent: mat.transparent || false,
+        opacity: mat.opacity ?? 1.0,
+        side: THREE.DoubleSide,
       });
 
-      child.material = Array.isArray(child.material) ? convertedMats : convertedMats[0];
-    }
+      if (mat.map) {
+        newMat.map = mat.map;
+      }
+      newMat.name = mat.name || "";
+      mat.dispose();
+      return newMat;
+    });
+
+    child.material = Array.isArray(child.material) ? convertedMats : convertedMats[0];
   });
 }
 
-// Wire up OBJ file input handling and parsing.
+// Wire OBJ/MTL file input parsing and object creation.
 export function setupObjImport({
   fileInput,
   container,
@@ -91,12 +259,10 @@ export function setupObjImport({
 
   const mtlLoader = new MTLLoader();
 
-  // Parse an OBJ string and add it to the scene.
   function loadObjFromText(text, filename, materials = null) {
     let object;
 
     try {
-      // Create a fresh OBJLoader for each load to avoid state issues
       const objLoader = new OBJLoader();
       if (materials) {
         debug("[Import] Setting materials on OBJLoader:", materials);
@@ -104,8 +270,7 @@ export function setupObjImport({
         objLoader.setMaterials(materials);
       }
       object = objLoader.parse(text);
-      
-      // Log the materials that were applied
+
       object.traverse((child) => {
         if (child.isMesh) {
           debug("[Import] Mesh:", child.name, "Material:", child.material?.name, "Color:", child.material?.color?.getHexString());
@@ -117,7 +282,6 @@ export function setupObjImport({
       return;
     }
 
-    // Always convert/fix materials - handles MTL materials and missing materials
     convertToStandardMaterial(object);
 
     object.name = filename;
@@ -126,31 +290,20 @@ export function setupObjImport({
     frameObject?.(object);
     onTextLoaded?.(text, filename);
     setStatus?.(`Loaded ${filename}${materials ? " with materials" : ""}`);
-    
+
     return object;
   }
 
-
-  // Parse MTL text and return materials.
   function loadMtlFromText(text, options = {}) {
-    const {
-      stripTextures = true,
-      resourcePath = "",
-    } = options;
+    const { stripTextures = true, resourcePath = "" } = options;
     try {
-      // Uploaded MTL files usually do not include bundled texture uploads, so
-      // texture map lines are stripped by default. Library imports can override
-      // this and provide a resource path for bundled textures.
-      mtlLoader.setResourcePath(
-        typeof resourcePath === "string" ? resourcePath : ""
-      );
+      mtlLoader.setResourcePath(typeof resourcePath === "string" ? resourcePath : "");
 
       const sourceText = stripTextures
         ? text
             .split("\n")
             .filter((line) => {
               const trimmed = line.trim().toLowerCase();
-              // Remove lines that reference texture maps.
               return !trimmed.startsWith("map_kd") &&
                 !trimmed.startsWith("map_ks") &&
                 !trimmed.startsWith("map_ka") &&
@@ -165,27 +318,8 @@ export function setupObjImport({
             .join("\n")
         : text;
 
-      if (stripTextures) {
-        debug("[Import] Cleaned MTL (no textures):", sourceText.substring(0, 300));
-      }
-
       const materials = mtlLoader.parse(sourceText);
       materials.preload();
-      
-      debug("[Import] Materials after preload:", materials);
-      debug("[Import] Materials object:", materials.materials);
-      
-      // Log each material's properties
-      Object.entries(materials.materials || {}).forEach(([name, mat]) => {
-        debug(`[Import] Material '${name}':`, {
-          type: mat.type,
-          color: mat.color?.getHexString(),
-          diffuse: mat.diffuse?.getHexString(),
-          specular: mat.specular?.getHexString(),
-          shininess: mat.shininess,
-        });
-      });
-      
       return materials;
     } catch (error) {
       console.error("Failed to parse MTL file:", error);
@@ -193,11 +327,9 @@ export function setupObjImport({
     }
   }
 
-  // Read a File as text.
   function readFileAsText(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-
       reader.onload = () => {
         const text = reader.result;
         if (typeof text === "string") {
@@ -206,11 +338,9 @@ export function setupObjImport({
           reject(new Error("Unable to read OBJ file."));
         }
       };
-
       reader.onerror = () => {
         reject(new Error("Error reading OBJ file."));
       };
-
       reader.readAsText(file);
     });
   }
@@ -224,34 +354,19 @@ export function setupObjImport({
       }
     });
 
-  // Handle a batch of selected files (OBJ and optionally MTL).
   async function handleFiles(files) {
-    if (!files || files.length === 0) {
-      return;
-    }
+    if (!files || files.length === 0) return;
 
     const fileArray = Array.from(files);
-    debug("[Import] Files selected:", fileArray.map((f) => f.name));
+    const objFiles = fileArray.filter((file) => file.name.toLowerCase().endsWith(".obj"));
+    const mtlFiles = fileArray.filter((file) => file.name.toLowerCase().endsWith(".mtl"));
 
-    const objFiles = fileArray.filter((file) =>
-      file.name.toLowerCase().endsWith(".obj")
-    );
-    const mtlFiles = fileArray.filter((file) =>
-      file.name.toLowerCase().endsWith(".mtl")
-    );
-
-    debug("[Import] OBJ files:", objFiles.map((f) => f.name));
-    debug("[Import] MTL files:", mtlFiles.map((f) => f.name));
-
-    // Build a map of MTL files by base name and full name for matching
     const mtlMap = new Map();
     for (const mtlFile of mtlFiles) {
       const baseName = mtlFile.name.replace(/\.mtl$/i, "");
       mtlMap.set(baseName.toLowerCase(), mtlFile);
-      // Also map by full filename for mtllib directive matching
       mtlMap.set(mtlFile.name.toLowerCase().replace(/\.mtl$/i, ""), mtlFile);
     }
-    debug("[Import] MTL map keys:", Array.from(mtlMap.keys()));
 
     if (objFiles.length === 0) {
       setStatus?.("Please select a .obj file.");
@@ -263,9 +378,7 @@ export function setupObjImport({
       objFiles.length === 1 ? "Loading OBJ..." : `Loading ${objFiles.length} OBJ files...`
     );
 
-    const objReads = await Promise.allSettled(
-      objFiles.map((objFile) => readFileAsText(objFile))
-    );
+    const objReads = await Promise.allSettled(objFiles.map((objFile) => readFileAsText(objFile)));
     const mtlTextCache = new Map();
 
     const getMtlMaterials = async (mtlFile) => {
@@ -286,27 +399,20 @@ export function setupObjImport({
         if (!readResult || readResult.status !== "fulfilled") {
           throw readResult?.reason || new Error("Unable to read OBJ file.");
         }
+
         const objText = readResult.value;
         const baseName = objFile.name.replace(/\.obj$/i, "");
-        debug("[Import] Processing OBJ:", objFile.name, "baseName:", baseName);
-
-        // Check for matching MTL file by base name
         let mtlFile = mtlMap.get(baseName.toLowerCase());
-        debug("[Import] MTL by baseName:", mtlFile?.name || "not found");
 
-        // Also check if OBJ references an MTL file via mtllib directive
         if (!mtlFile) {
           const mtllibMatch = objText.match(/^mtllib\s+(.+)$/im);
           if (mtllibMatch) {
             const mtlName = mtllibMatch[1].trim().replace(/\.mtl$/i, "");
-            debug("[Import] OBJ references mtllib:", mtllibMatch[1], "looking for:", mtlName);
             mtlFile = mtlMap.get(mtlName.toLowerCase());
-            debug("[Import] MTL by mtllib:", mtlFile?.name || "not found");
           }
         }
 
         let materials = null;
-
         if (mtlFile) {
           try {
             materials = await getMtlMaterials(mtlFile);
@@ -342,7 +448,7 @@ export function setupObjImport({
   return { loadFromText: loadObjFromText, loadMtlFromText };
 }
 
-// Coordinate OBJ import, export, and delete wiring.
+// Connect import/export handlers to app state and UI updates.
 export function setupImportExport({
   dom,
   importRoot,
@@ -402,7 +508,6 @@ export function setupImportExport({
       typeof getExportTarget === "function"
         ? getExportTarget
         : () => store.getState().currentObject,
-    getAllObjects: () => store.getState().importedObjects,
     getFilename: getExportFilename,
     setStatus,
   });

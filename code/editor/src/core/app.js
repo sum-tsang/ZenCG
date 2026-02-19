@@ -1,40 +1,52 @@
 // App bootstrap and wiring.
 import * as THREE from "three";
-import { config, BASE_MESH_HEIGHT_METERS, metersToUnits } from "./core/settings.js";
-import { getDomRefs, assertDom } from "./ui/dom.js";
-import { createInitialState, createStore } from "./core/index.js";
-import { frameObjectBounds } from "./camera/camera.js";
-import { createSceneContext } from "./scene/context.js";
-import { findImportedRoot, updateSelectionOutline } from "./scene/selection.js";
-import { placeImportedObject } from "./scene/placement.js";
-import { renderObjectList as renderObjectListView } from "./scene/listView.js";
-import { disposeObject } from "./scene/dispose.js";
 import {
+  appConfig as config,
+  BASE_MESH_HEIGHT_METERS,
+  metersToUnits,
+} from "./settings.js";
+import {
+  getDomRefs,
+  assertDom,
+  createStatusUpdater,
+  setupShortcuts,
+  setupUiLayout,
+} from "../ui/ui.js";
+import { createInitialState, createStore } from "./state.js";
+import {
+  frameObjectBounds,
+  setCameraAxisView,
+  attachCameraControls,
+  setupCameraPanel,
+} from "../camera/camera.js";
+import { createSceneContext } from "../scene/context.js";
+import {
+  findImportedRoot,
+  updateSelectionOutline,
+  placeImportedObject,
+  disposeObject,
+  renderObjectList as renderObjectListView,
   applyTransform,
   serializeTransform,
   updateStoredTransform,
   updateStoredMaterial,
   updateStoredName,
-} from "./scene/transform.js";
-import { createDeleteImportedObject } from "./scene/delete.js";
-import { attachCameraControls } from "./camera/cameraSettings.js";
-import { createEnvironmentGizmo } from "./scene/environmentGizmo.js";
-import { saveStoredImports, loadStoredImports } from "./persistence/storage.js";
-import { createSaveScheduler } from "./persistence/saveScheduler.js";
-import { restoreStoredImports } from "./persistence/restore.js";
-import { prepareStoredImportsForSave } from "./persistence/entrySerialization.js";
+  createDeleteImportedObject,
+} from "../scene/objects.js";
+import { createEnvironmentGizmo, setupResizeAndRender } from "../scene/view.js";
 import {
+  saveStoredImports,
+  loadStoredImports,
+  createSaveScheduler,
+  restoreStoredImports,
+  prepareStoredImportsForSave,
   loadActionHistory,
   saveActionHistory,
-} from "./persistence/actionHistoryStorage.js";
-import { setupTransformTools } from "./model/transform/transformTools.js";
-import { setupImportExport } from "./io/import.js";
-import { setupLibraryImport } from "./io/modelLibrary.js";
-import { setupShortcuts } from "./ui/shortcuts.js";
-import { setupUiLayout } from "./ui/layout.js";
-import { setupResizeAndRender } from "./scene/renderLoop.js";
-import { createStatusUpdater } from "./ui/status.js";
-import { MaterialPanel } from "./model/materials/materialPanel.js";
+} from "../persistence/persistence.js";
+import { setupTransformTools } from "../model/transformTools.js";
+import { setupImportExport } from "../io/importExport.js";
+import { setupLibraryImport } from "../io/modelLibrary.js";
+import { MaterialPanel } from "../model/materialPanel.js";
 
 const dom = getDomRefs();
 assertDom(dom);
@@ -53,6 +65,7 @@ let envGizmo = null;
 let deleteImportedObject = () => {};
 let undoDelete = () => false;
 let hasUndoDelete = () => false;
+let clearDeleteHistory = () => {};
 let lastAutoExportName = "";
 const BASE_MESH_RE = /base[_\s-]?mesh/i;
 const TOOL_LABELS = {
@@ -153,6 +166,9 @@ const updateExportAvailability = () => {
   const exportWholeScene = Boolean(dom.exportSceneToggle?.checked);
   const hasScene = state.importedObjects.length > 0;
   dom.exportButton.disabled = exportWholeScene ? !hasScene : !state.currentObject;
+  if (dom.clearSceneButton instanceof HTMLButtonElement) {
+    dom.clearSceneButton.disabled = !hasScene;
+  }
 };
 
 const normalizeBaseMeshScale = (object) => {
@@ -370,6 +386,60 @@ const duplicateSelectionInstant = () => {
   });
 };
 
+const clearScene = () => {
+  const state = store.getState();
+  const count = state.importedObjects.length;
+  if (!count) {
+    setStatus?.("Scene is already empty.");
+    return false;
+  }
+
+  const objects = [...state.importedObjects];
+  objects.forEach((object) => {
+    if (!object) return;
+    object.parent?.remove(object);
+    disposeObject(object);
+  });
+
+  clearDeleteHistory?.();
+
+  store.mutate((nextState) => {
+    nextState.currentObject = null;
+    nextState.selectedObjects = [];
+    nextState.importedObjects = [];
+    nextState.storedImports = [];
+    nextState.nextOffsetX = 0;
+  });
+
+  if (transformationManager) {
+    transformationManager.clearHistory?.();
+    transformationManager.selectObject(null);
+  } else {
+    updateSelectionOutline(selectionHelper, null);
+  }
+  materialPanel?.setObject(null);
+
+  renderObjectList();
+  updateObjectNameField(null);
+  updateExportNameField(null);
+  updateExportAvailability();
+  saveStoredImportsNow();
+
+  setStatus?.(count === 1 ? "Cleared 1 object from the scene." : `Cleared ${count} objects from the scene.`);
+  return true;
+};
+
+const setCameraPreset = (axis) => {
+  const applied = setCameraAxisView({
+    camera,
+    target,
+    sceneRoot: importRoot,
+    axis,
+  });
+  if (!applied) return;
+  setStatus?.(`Camera view: ${String(axis).toUpperCase().replace("+", "")}`);
+};
+
 // Persist current stored imports immediately.
 const saveStoredImportsNow = () => {
   const state = store.getState();
@@ -426,6 +496,12 @@ if (dom.exportSceneToggle instanceof HTMLInputElement) {
   dom.exportSceneToggle.addEventListener("change", () => {
     updateExportAvailability();
     updateExportNameField(store.getState().currentObject);
+  });
+}
+
+if (dom.clearSceneButton instanceof HTMLButtonElement) {
+  dom.clearSceneButton.addEventListener("click", () => {
+    clearScene();
   });
 }
 
@@ -488,6 +564,34 @@ const setupPanelTabs = () => {
   });
 
   setActiveTab("controls");
+};
+
+const setupToolsTabs = () => {
+  if (!(dom.toolsTabTransform instanceof HTMLButtonElement)) return;
+  if (!(dom.toolsTabCamera instanceof HTMLButtonElement)) return;
+  if (!(dom.toolsPaneTransform instanceof HTMLElement)) return;
+  if (!(dom.toolsPaneCamera instanceof HTMLElement)) return;
+
+  const setActiveTab = (tabKey) => {
+    const showCamera = tabKey === "camera";
+    dom.toolsPaneTransform.hidden = showCamera;
+    dom.toolsPaneCamera.hidden = !showCamera;
+
+    dom.toolsTabTransform.classList.toggle("is-active", !showCamera);
+    dom.toolsTabCamera.classList.toggle("is-active", showCamera);
+    dom.toolsTabTransform.setAttribute("aria-selected", showCamera ? "false" : "true");
+    dom.toolsTabCamera.setAttribute("aria-selected", showCamera ? "true" : "false");
+  };
+
+  dom.toolsTabTransform.addEventListener("click", () => {
+    setActiveTab("transform");
+  });
+
+  dom.toolsTabCamera.addEventListener("click", () => {
+    setActiveTab("camera");
+  });
+
+  setActiveTab("transform");
 };
 
 const setupManualModal = () => {
@@ -584,8 +688,9 @@ if (dom.panelToggle instanceof HTMLButtonElement) {
 
 setupManualModal();
 setupPanelTabs();
+setupToolsTabs();
 
-({ deleteImportedObject, undoDelete, hasUndoDelete } = createDeleteImportedObject({
+({ deleteImportedObject, undoDelete, hasUndoDelete, clearDeleteHistory } = createDeleteImportedObject({
   importRoot,
   store,
   findImportedRoot,
@@ -603,6 +708,10 @@ function init() {
 
   // Initialize material panel
   materialPanel = new MaterialPanel("material-panel-container");
+  setupCameraPanel({
+    containerId: "camera-panel-container",
+    onAxisView: setCameraPreset,
+  });
 
   // Wire up material changes to trigger saves
   materialPanel.onMaterialChange(({ object }) => {
@@ -702,6 +811,7 @@ function init() {
     store,
     transformationManager,
     deleteImportedObject,
+    clearScene,
     undoDelete,
     hasUndoDelete,
     copySelection: copySelectionToClipboard,

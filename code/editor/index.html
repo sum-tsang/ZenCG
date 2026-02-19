@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./src/style.css" />
+    <link rel="stylesheet" href="./src/styles/style.css" />
   </head>
   <body>
     <!-- Editor layout -->
@@ -40,14 +40,56 @@
         >
           <span class="edge-toggle-icon" aria-hidden="true">&gt;</span>
         </button>
-        <aside id="tools-island" aria-label="Transform and material tools">
+        <aside id="tools-island" aria-label="Transform, material, and camera tools">
           <div class="tools-stack">
-            <section class="tools-card" aria-label="Transform tools">
-              <div id="transformation-panel-container"></div>
-            </section>
-            <section class="tools-card" aria-label="Material tools">
-              <div id="material-panel-container"></div>
-            </section>
+            <div class="tools-tabs" role="tablist" aria-label="Tools tabs">
+              <button
+                id="tools-tab-transform"
+                class="tools-tab is-active"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                aria-controls="tools-pane-transform"
+              >
+                Transform
+              </button>
+              <button
+                id="tools-tab-camera"
+                class="tools-tab"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="tools-pane-camera"
+              >
+                Camera
+              </button>
+            </div>
+            <div class="tools-panes">
+              <div
+                id="tools-pane-transform"
+                class="tools-pane"
+                role="tabpanel"
+                aria-labelledby="tools-tab-transform"
+              >
+                <section class="tools-card" aria-label="Transform tools">
+                  <div id="transformation-panel-container"></div>
+                </section>
+                <section class="tools-card" aria-label="Material tools">
+                  <div id="material-panel-container"></div>
+                </section>
+              </div>
+              <div
+                id="tools-pane-camera"
+                class="tools-pane"
+                role="tabpanel"
+                aria-labelledby="tools-tab-camera"
+                hidden
+              >
+                <section class="tools-card tools-card--camera" aria-label="Camera tools">
+                  <div id="camera-panel-container"></div>
+                </section>
+              </div>
+            </div>
           </div>
         </aside>
         <div id="panel-stack">
@@ -133,6 +175,7 @@
                     </div>
                     <button id="obj-export" disabled>Export OBJ</button>
                     <button id="obj-delete" disabled>Delete Selected</button>
+                    <button id="obj-clear-scene" disabled>Clear Scene</button>
                   </section>
                   <section class="panel-section history-section" aria-label="History and status">
                     <div class="panel-header-row history-header-row">
@@ -216,7 +259,7 @@
         <header class="manual-header">
           <div>
             <h2 id="manual-title" class="manual-title">User Manual</h2>
-            <p class="manual-subtitle">ZenCG tutorials and information.</p>
+            <p class="manual-subtitle">Quick basics only.</p>
           </div>
           <button class="manual-close" type="button" data-manual-close aria-label="Close user manual">
             Close
@@ -225,92 +268,32 @@
         <div class="manual-content">
           <ul class="manual-list">
             <li class="manual-item">
-              <span class="manual-item-key">Import OBJ Button</span>
-              <span class="manual-item-action">Open the file picker and import OBJ files, with optional MTL files.</span>
+              <span class="manual-item-key">Import OBJ</span>
+              <span class="manual-item-action">Add model files to the scene.</span>
             </li>
             <li class="manual-item">
-              <span class="manual-item-key">Object List Click</span>
-              <span class="manual-item-action">Select an object as the active target.</span>
+              <span class="manual-item-key">Select Model</span>
+              <span class="manual-item-action">Click a model in the object list.</span>
             </li>
             <li class="manual-item">
-              <span class="manual-item-key">Object List Right-Click</span>
-              <span class="manual-item-action">Toggle an object in multi-selection.</span>
+              <span class="manual-item-key">T / R / S</span>
+              <span class="manual-item-action">Switch move, rotate, and scale.</span>
             </li>
             <li class="manual-item">
-              <span class="manual-item-key">G</span>
-              <span class="manual-item-action">Switch transform mode to translate.</span>
+              <span class="manual-item-key">X / Y / Z</span>
+              <span class="manual-item-action">Lock axis while transforming.</span>
             </li>
             <li class="manual-item">
-              <span class="manual-item-key">R</span>
-              <span class="manual-item-action">Switch transform mode to rotate.</span>
+              <span class="manual-item-key">Enter / Esc</span>
+              <span class="manual-item-action">Confirm or cancel transform.</span>
             </li>
             <li class="manual-item">
-              <span class="manual-item-key">S</span>
-              <span class="manual-item-action">Switch transform mode to scale.</span>
+              <span class="manual-item-key">Undo / Redo</span>
+              <span class="manual-item-action">Use Ctrl/Cmd + Z and Ctrl/Cmd + Shift + Z.</span>
             </li>
             <li class="manual-item">
-              <span class="manual-item-key">X</span>
-              <span class="manual-item-action">Start axis-locked transform on X for the current mode.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Y</span>
-              <span class="manual-item-action">Start axis-locked transform on Y for the current mode.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Z</span>
-              <span class="manual-item-action">Start axis-locked transform on Z for the current mode.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Mouse Move</span>
-              <span class="manual-item-action">After pressing X, Y, or Z, move the mouse to apply the transform.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Enter</span>
-              <span class="manual-item-action">Commit the active axis-locked transform.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Esc</span>
-              <span class="manual-item-action">Cancel the active axis-locked transform and restore the previous state.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Create Component Button</span>
-              <span class="manual-item-action">Start split workflow using a selection box.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">C</span>
-              <span class="manual-item-action">Combine selected models into one model group.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">D</span>
-              <span class="manual-item-action">Duplicate selected model(s) instantly.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Cmd/Ctrl + C</span>
-              <span class="manual-item-action">Copy selected model(s) to the in-editor clipboard.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Cmd/Ctrl + V</span>
-              <span class="manual-item-action">Paste copied model(s) into the scene.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Cmd/Ctrl + Z</span>
-              <span class="manual-item-action">Undo the most recent transform or action.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Cmd/Ctrl + Shift + Z / Cmd/Ctrl + Y</span>
-              <span class="manual-item-action">Redo the most recently undone transform or action.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Del / Backspace</span>
-              <span class="manual-item-action">Delete the selected object.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Export Whole Scene Toggle</span>
-              <span class="manual-item-action">Switch between exporting the selected object or all imported objects.</span>
-            </li>
-            <li class="manual-item">
-              <span class="manual-item-key">Export OBJ Button</span>
-              <span class="manual-item-action">Export the selected object or full scene to OBJ.</span>
+              <span class="manual-item-key">Export OBJ</span>
+              <span class="manual-item-action">Export selected model or the whole scene.</span>
             </li>
           </ul>
         </div>
@@ -324,6 +307,6 @@
         }
       }
     </script>
-    <script type="module" src="./src/app.js"></script>
+    <script type="module" src="./src/core/app.js"></script>
   </body>
 </html>

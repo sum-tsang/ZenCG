@@ -1,15 +1,17 @@
 // Model library loader with runtime 3D preview tiles.
 import * as THREE from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { modelLibrarySettings } from "../core/settings.js";
 
-const PREVIEW_WIDTH = 640;
-const PREVIEW_HEIGHT = 300;
-const PREVIEW_FOV = 32;
-const PREVIEW_MARGIN = 1.12;
-const PREVIEW_MIN_RADIUS = 0.08;
-const PREVIEW_TARGET_RADIUS = 0.95;
-const PREVIEW_LIFT = 0.04;
-const PREVIEW_BACKGROUND_COLOR = 0x232323;
+const { preview, manifestPath } = modelLibrarySettings;
+const PREVIEW_WIDTH = preview.width;
+const PREVIEW_HEIGHT = preview.height;
+const PREVIEW_FOV = preview.fov;
+const PREVIEW_MARGIN = preview.margin;
+const PREVIEW_MIN_RADIUS = preview.minRadius;
+const PREVIEW_TARGET_RADIUS = preview.targetRadius;
+const PREVIEW_LIFT = preview.lift;
+const PREVIEW_BACKGROUND_COLOR = preview.backgroundColor;
 
 const yieldToMainThread = () =>
   new Promise((resolve) => {
@@ -439,7 +441,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
     renderGalleryMessage("Loading models...");
 
     try {
-      const response = await fetch("./assets/models/library.json");
+      const response = await fetch(manifestPath);
       if (!response.ok) {
         throw new Error(`Library fetch failed: ${response.status}`);
       }

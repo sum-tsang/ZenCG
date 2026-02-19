@@ -1,7 +1,61 @@
-// Environment gizmo scene.
-import * as THREE from "three";
 
-// Gizmo
+import * as THREE from "three";
+import { updateMultiSelectionOutlines } from "./objects.js";
+
+// Start resize handling and the main render loop.
+export function setupResizeAndRender({
+  dom,
+  camera,
+  renderer,
+  scene,
+  target,
+  selectionHelper,
+  multiSelectionGroup,
+  getCurrentObject,
+  getSelectedObjects,
+  transformationManager,
+  envGizmo,
+  setStatus,
+}) {
+  const resize = () => {
+    const width = Math.max(1, dom.canvas.clientWidth);
+    const height = Math.max(1, dom.canvas.clientHeight);
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height, false);
+    envGizmo?.resize();
+  };
+
+  const render = () => {
+    camera.lookAt(target);
+    const currentObject = getCurrentObject?.();
+    if (currentObject && selectionHelper?.visible) {
+      selectionHelper.setFromObject(currentObject);
+    }
+    if (multiSelectionGroup) {
+      const selectedObjects = getSelectedObjects?.() ?? [];
+      updateMultiSelectionOutlines(multiSelectionGroup, selectedObjects, currentObject);
+    }
+    if (currentObject && transformationManager?.gizmo) {
+      transformationManager.gizmo.updateGizmoPosition();
+    }
+    renderer.render(scene, camera);
+    envGizmo?.render();
+    requestAnimationFrame(render);
+  };
+
+  window.addEventListener("resize", resize);
+  setStatus?.("Waiting for OBJ file...");
+  resize();
+  render();
+
+  return () => {
+    window.removeEventListener("resize", resize);
+  };
+}
+
+// Build and render the small orientation gizmo in the corner.
 export function createEnvironmentGizmo(canvas, mainCamera) {
   if (!(canvas instanceof HTMLCanvasElement)) {
     return null;
@@ -145,7 +199,6 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
   axesGroup.scale.setScalar(1.05);
   scene.add(axesGroup);
 
-  // Resize the gizmo renderer to match its canvas.
   const resize = () => {
     const width = Math.max(1, canvas.clientWidth);
     const height = Math.max(1, canvas.clientHeight);
@@ -154,7 +207,6 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
     camera.updateProjectionMatrix();
   };
 
-  // Render the gizmo with inverse camera rotation.
   const render = () => {
     if (!mainCamera) return;
     axesGroup.quaternion.copy(mainCamera.quaternion).invert();

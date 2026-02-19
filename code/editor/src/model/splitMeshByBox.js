@@ -1,6 +1,6 @@
 // Mesh split utility.
 import * as THREE from "three";
-import { disposeObject } from "../../scene/dispose.js";
+import { disposeObject } from "../scene/objects.js";
 
 function collectMeshes(root) {
   if (!root) return [];

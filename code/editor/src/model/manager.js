@@ -2,8 +2,8 @@
 import { TransformationGizmo } from "./gizmo.js";
 import { TransformationPanel } from "./panel.js";
 import * as THREE from "three";
-import { splitMeshByBox } from "../operations/splitMeshByBox.js";
-import { combineModels } from "../operations/combineModels.js";
+import { splitMeshByBox } from "./splitMeshByBox.js";
+import { combineModels } from "./combineModels.js";
 import {
   UndoHistory,
   applyTransformSnapshot,
@@ -134,7 +134,7 @@ export class TransformationManager {
     this.notifyToolStateChange();
   }
 
-  // NOTE: split logic moved to model/operations/splitMeshByBox.js
+  // NOTE: split logic lives in splitMeshByBox.js
 
   // Attach pointer listeners for selection and gizmo interactions.
   setupEventListeners() {
@@ -238,8 +238,7 @@ export class TransformationManager {
   // Create 6 drag handles for the selection box faces
   createBoxHandles(boxMesh) {
     const handles = [];
-    const handleSize = 0.4;
-    const handleGeom = new THREE.BoxGeometry(handleSize, handleSize, handleSize);
+    const handleGeom = new THREE.BoxGeometry(1, 1, 1);
     
     // Define the 6 faces: +X, -X, +Y, -Y, +Z, -Z
     const faces = [
@@ -259,6 +258,7 @@ export class TransformationManager {
         depthTest: false 
       });
       const handle = new THREE.Mesh(handleGeom.clone(), handleMat);
+      handle.scale.setScalar(this.getBoxHandleSize(boxMesh));
       handle.name = `BoxHandle_${face.axis}_${face.dir > 0 ? 'pos' : 'neg'}`;
       handle.userData.axis = face.axis;
       handle.userData.direction = face.dir;
@@ -272,6 +272,18 @@ export class TransformationManager {
     return handles;
   }
 
+  // Scale handle cubes relative to the current box dimensions with safe limits.
+  getBoxHandleSize(boxMesh) {
+    if (!boxMesh?.userData?.boxMin || !boxMesh?.userData?.boxMax) return 0.1;
+
+    const boxSize = new THREE.Vector3().subVectors(
+      boxMesh.userData.boxMax,
+      boxMesh.userData.boxMin
+    );
+    const shortestAxis = Math.max(0.01, Math.min(boxSize.x, boxSize.y, boxSize.z));
+    return THREE.MathUtils.clamp(shortestAxis * 0.12, 0.06, 0.16);
+  }
+
   // Update handle positions based on box bounds
   updateBoxHandlePositions(boxMesh, handles) {
     if (!boxMesh || !handles) return;
@@ -279,6 +291,7 @@ export class TransformationManager {
     const min = boxMesh.userData.boxMin;
     const max = boxMesh.userData.boxMax;
     const center = new THREE.Vector3().addVectors(min, max).multiplyScalar(0.5);
+    const handleSize = this.getBoxHandleSize(boxMesh);
 
     handles.forEach(handle => {
       const axis = handle.userData.axis;
@@ -294,6 +307,7 @@ export class TransformationManager {
       }
       
       handle.position.copy(pos);
+      handle.scale.setScalar(handleSize);
     });
   }
 
@@ -788,6 +802,15 @@ export class TransformationManager {
     this.recordSnapshot();
     this.initializedObjects.add(this.selectedObject);
     this.initialSnapshots.delete(this.selectedObject);
+  }
+
+  // Clear all transform/action history snapshots.
+  clearHistory() {
+    this.undoHistory.clear();
+    this.actionHistory.clear();
+    this.initializedObjects = new WeakSet();
+    this.initialSnapshots = new WeakMap();
+    this.notifyHistoryChange();
   }
 
   // Record a transform snapshot for undo/history.
