@@ -1,12 +1,12 @@
-// Action history tracker.
 const DEFAULT_ACTION_LIMIT = 24;
 
 export class ActionHistory {
+  // Initializes class state
   constructor({ limit = DEFAULT_ACTION_LIMIT } = {}) {
     this.limit = limit;
     this.stack = [];
   }
-
+  // Sets entries
   setEntries(entries = []) {
     if (!Array.isArray(entries)) {
       this.stack = [];
@@ -18,11 +18,11 @@ export class ActionHistory {
       .filter(Boolean);
     this.stack = cleaned.slice(-this.limit);
   }
-
+  // Handles clear
   clear() {
     this.stack = [];
   }
-
+  // Handles record
   record(action) {
     if (typeof action !== "string") return;
     const trimmed = action.trim();
@@ -32,7 +32,7 @@ export class ActionHistory {
       this.stack.shift();
     }
   }
-
+  // Handles entries
   entries({ newestFirst = true } = {}) {
     if (!newestFirst) return [...this.stack];
     return [...this.stack].reverse();

@@ -1,9 +1,9 @@
 
 import * as THREE from "three";
-import { persistenceSettings } from "../core/settings.js";
-import { materialEditor } from "../model/materialEditor.js";
+import { persistenceSettings } from "../core/config/settings.js";
+import { materialEditor } from "../model/material/editor.js";
 
-// Render the object list panel from current store state.
+// Render the object list panel from current store state
 export function renderObjectList({ dom, state, onSelect, onDelete, onToggleSelect }) {
   if (!(dom.objectList instanceof HTMLUListElement)) {
     return;
@@ -70,7 +70,7 @@ export function renderObjectList({ dom, state, onSelect, onDelete, onToggleSelec
   dom.objectList.replaceChildren(fragment);
 }
 
-// Resolve a clicked child object to its top-level imported root.
+// Resolve a clicked child object to its top-level imported root
 export function findImportedRoot(importRoot, object) {
   let current = object;
   while (current && current !== importRoot) {
@@ -82,7 +82,7 @@ export function findImportedRoot(importRoot, object) {
   return null;
 }
 
-// Show or hide the primary selection helper outline.
+// Show or hide the primary selection helper outline
 export function updateSelectionOutline(selectionHelper, object) {
   if (!selectionHelper) return;
   if (!object) {
@@ -96,7 +96,7 @@ export function updateSelectionOutline(selectionHelper, object) {
   selectionHelper.visible = true;
 }
 
-// Maintain helper outlines for non-primary multi-selection objects.
+// Maintain helper outlines for non-primary multi-selection objects
 export function updateMultiSelectionOutlines(group, objects = [], primary) {
   if (!group) return;
   const selected = Array.isArray(objects) ? objects : [];
@@ -144,7 +144,7 @@ export function updateMultiSelectionOutlines(group, objects = [], primary) {
   }
 }
 
-// Serialize transform state for persistence.
+// Serialize transform state for persistence
 export function serializeTransform(object) {
   return {
     position: object.position.toArray(),
@@ -153,7 +153,7 @@ export function serializeTransform(object) {
   };
 }
 
-// Apply a persisted transform payload to an object.
+// Apply a persisted transform payload to an object
 export function applyTransform(object, transform) {
   if (!transform) return;
   if (Array.isArray(transform.position) && transform.position.length === 3) {
@@ -167,7 +167,7 @@ export function applyTransform(object, transform) {
   }
 }
 
-// Sync current transform into stored import metadata.
+// Sync current transform into stored import metadata
 export function updateStoredTransform(object, state) {
   const index = state.importedObjects.indexOf(object);
   if (index === -1) return;
@@ -176,7 +176,7 @@ export function updateStoredTransform(object, state) {
   entry.transform = serializeTransform(object);
 }
 
-// Sync current material into stored import metadata.
+// Sync current material into stored import metadata
 export function updateStoredMaterial(object, state) {
   const index = state.importedObjects.indexOf(object);
   if (index === -1) return;
@@ -185,7 +185,7 @@ export function updateStoredMaterial(object, state) {
   entry.material = materialEditor.serializeMaterial(object);
 }
 
-// Sync display name into stored import metadata.
+// Sync display name into stored import metadata
 export function updateStoredName(object, state, name) {
   const index = state.importedObjects.indexOf(object);
   if (index === -1) return;
@@ -196,7 +196,7 @@ export function updateStoredName(object, state, name) {
   }
 }
 
-// Place a new import with consistent horizontal spacing.
+// Place a new import with consistent horizontal spacing
 export function placeImportedObject(object, state, appConfig) {
   const box = new THREE.Box3().setFromObject(object);
   if (box.isEmpty()) return;
@@ -211,7 +211,7 @@ export function placeImportedObject(object, state, appConfig) {
   state.nextOffsetX += width + appConfig.importGap;
 }
 
-// Release geometry and materials for an object tree.
+// Release geometry and materials for an object tree
 export function disposeObject(object) {
   object.traverse((child) => {
     if (child.geometry) child.geometry.dispose();
@@ -224,7 +224,7 @@ export function disposeObject(object) {
   });
 }
 
-// Create delete/undo handlers for imported objects.
+// Create delete/undo handlers for imported objects
 export function createDeleteImportedObject({
   importRoot,
   store,
@@ -238,6 +238,7 @@ export function createDeleteImportedObject({
   const deletedStack = [];
   const maxUndo = persistenceSettings.deleteUndoLimit;
 
+  // Runs clone entry
   const cloneEntry = (entry) => {
     if (!entry) return null;
     if (typeof structuredClone === "function") {
@@ -246,11 +247,13 @@ export function createDeleteImportedObject({
     return JSON.parse(JSON.stringify(entry));
   };
 
+  // Disposes deleted
   const disposeDeleted = (entry) => {
     if (!entry?.object) return;
     disposeObject(entry.object);
   };
 
+  // Runs delete imported object
   const deleteImportedObject = (object) => {
     const state = store.getState();
     const root = object ? findImportedRoot(importRoot, object) ?? object : null;
@@ -296,6 +299,7 @@ export function createDeleteImportedObject({
     }
   };
 
+  // Runs undo delete
   const undoDelete = () => {
     const entry = deletedStack.pop();
     if (!entry?.object) return false;
@@ -320,8 +324,10 @@ export function createDeleteImportedObject({
     return true;
   };
 
+  // Returns whether undo delete
   const hasUndoDelete = () => deletedStack.length > 0;
 
+  // Clears delete history
   const clearDeleteHistory = () => {
     while (deletedStack.length > 0) {
       const entry = deletedStack.pop();

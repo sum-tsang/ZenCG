@@ -1,7 +1,6 @@
-// Mesh split utility.
 import * as THREE from "three";
-import { disposeObject } from "../scene/objects.js";
-
+import { disposeObject } from "../../scene/objects.js";
+// Handles collect meshes
 function collectMeshes(root) {
   if (!root) return [];
   if (root.isMesh && root.geometry) return [root];
@@ -13,7 +12,7 @@ function collectMeshes(root) {
   });
   return meshes;
 }
-
+// Handles clone material
 function cloneMaterial(material) {
   if (!material) {
     return new THREE.MeshStandardMaterial({ color: 0x888888 });
@@ -23,7 +22,7 @@ function cloneMaterial(material) {
   }
   return material.clone ? material.clone() : material;
 }
-
+// Handles build mesh from geometry
 function buildMeshFromGeometry(geometry, material, worldPos, worldQuat, worldScale, name) {
   const mesh = new THREE.Mesh(geometry, cloneMaterial(material));
   if (name) mesh.name = name;
@@ -32,7 +31,7 @@ function buildMeshFromGeometry(geometry, material, worldPos, worldQuat, worldSca
   mesh.scale.copy(worldScale);
   return mesh;
 }
-
+// Handles split single mesh
 function splitSingleMesh(mesh, box3) {
   if (!mesh?.geometry) return null;
   const geom = mesh.geometry;
@@ -51,7 +50,7 @@ function splitSingleMesh(mesh, box3) {
   const outsidePositions = [];
   const outsideNormals = [];
   const outsideUVs = [];
-
+  // Handles push vertex
   const pushVertex = (arrPos, arrNorm, arrUV, vi) => {
     arrPos.push(posAttr.getX(vi), posAttr.getY(vi), posAttr.getZ(vi));
     if (normAttr) arrNorm.push(normAttr.getX(vi), normAttr.getY(vi), normAttr.getZ(vi));
@@ -130,7 +129,7 @@ function splitSingleMesh(mesh, box3) {
     outsideUVs,
   };
 }
-
+// Creates geometry from parts
 function createGeometryFromParts(positions, normals, uvs) {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -143,7 +142,7 @@ function createGeometryFromParts(positions, normals, uvs) {
   geometry.computeBoundingSphere();
   return geometry;
 }
-
+// Handles recenter group
 function recenterGroup(group) {
   if (!group || group.children.length === 0) return;
   const box = new THREE.Box3().setFromObject(group);
@@ -156,14 +155,14 @@ function recenterGroup(group) {
 }
 
 /**
- * Split a mesh or group into two separate objects based on a Box3.
- * Triangles whose centroids fall inside the box go to "inside"; the rest to "outside".
- * Returns null if the selection box does not split the target into both sides.
+ * Split a mesh or group into two separate objects based on a Box3
+ * Triangles whose centroids fall inside the box go to "inside"; the rest to "outside"
+ * Returns null if the selection box does not split the target into both sides
  *
- * @param {THREE.Mesh|THREE.Object3D} meshOrGroup - The mesh or group to split
- * @param {THREE.Box3} box3 - The selection box in world space
- * @param {THREE.Object3D} parentForNewMeshes - The parent to add new meshes to (e.g., importRoot)
- * @returns {{ inside: THREE.Object3D|null, outside: THREE.Object3D|null }|null}
+ * @param {THREEMesh|THREEObject3D} meshOrGroup - The mesh or group to split
+ * @param {THREEBox3} box3 - The selection box in world space
+ * @param {THREEObject3D} parentForNewMeshes - The parent to add new meshes to (eg, importRoot)
+ * @returns {{ inside: THREEObject3D|null, outside: THREEObject3D|null }|null}
  */
 export function splitMeshByBox(meshOrGroup, box3, parentForNewMeshes) {
   if (!meshOrGroup) return null;

@@ -1,6 +1,5 @@
-// Model combination helpers.
 import * as THREE from "three";
-
+// Handles unique objects
 function uniqueObjects(objects = []) {
   const seen = new Set();
   return (Array.isArray(objects) ? objects : []).filter((object) => {
@@ -10,7 +9,7 @@ function uniqueObjects(objects = []) {
     return true;
   });
 }
-
+// Handles build combined name
 function buildCombinedName(objects = []) {
   const first = objects[0];
   const firstName = typeof first?.name === "string" ? first.name.trim() : "";
@@ -19,7 +18,7 @@ function buildCombinedName(objects = []) {
   }
   return "combined_model";
 }
-
+// Handles recenter group to bounds
 function recenterGroupToBounds(group) {
   if (!group || !group.parent || group.children.length === 0) return;
   group.updateMatrixWorld(true);
@@ -38,8 +37,8 @@ function recenterGroupToBounds(group) {
 }
 
 /**
- * Combine selected top-level objects under a single group.
- * Returns null when there are not enough objects to combine.
+ * Combine selected top-level objects under a single group
+ * Returns null when there are not enough objects to combine
  */
 export function combineModels(objects = [], parent) {
   const selected = uniqueObjects(objects);

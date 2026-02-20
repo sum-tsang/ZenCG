@@ -2,7 +2,7 @@
 import * as THREE from "three";
 import { updateMultiSelectionOutlines } from "./objects.js";
 
-// Start resize handling and the main render loop.
+// Start resize handling and the main render loop
 export function setupResizeAndRender({
   dom,
   camera,
@@ -17,6 +17,7 @@ export function setupResizeAndRender({
   envGizmo,
   setStatus,
 }) {
+  // Runs resize
   const resize = () => {
     const width = Math.max(1, dom.canvas.clientWidth);
     const height = Math.max(1, dom.canvas.clientHeight);
@@ -27,6 +28,7 @@ export function setupResizeAndRender({
     envGizmo?.resize();
   };
 
+  // Renders the target state
   const render = () => {
     camera.lookAt(target);
     const currentObject = getCurrentObject?.();
@@ -55,7 +57,7 @@ export function setupResizeAndRender({
   };
 }
 
-// Build and render the small orientation gizmo in the corner.
+// Build and render the small orientation gizmo in the corner
 export function createEnvironmentGizmo(canvas, mainCamera) {
   if (!(canvas instanceof HTMLCanvasElement)) {
     return null;
@@ -74,12 +76,9 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
   const arrowLength = 1.1;
   const headLength = 0.32;
   const headWidth = 0.22;
-  const negativeArrowLength = arrowLength;
-  const negativeHeadLength = headLength;
-  const negativeHeadWidth = headWidth;
   const labelOffset = arrowLength + 0.18;
-  const negativeLabelOffset = labelOffset;
 
+  // Creates axis label
   const createAxisLabel = (text, color, scale = 0.35) => {
     const size = 128;
     const canvas = document.createElement("canvas");
@@ -119,10 +118,10 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
     new THREE.ArrowHelper(
       new THREE.Vector3(-1, 0, 0),
       origin,
-      negativeArrowLength,
+      arrowLength,
       0xff3b30,
-      negativeHeadLength,
-      negativeHeadWidth
+      headLength,
+      headWidth
     )
   );
   axesGroup.add(
@@ -139,10 +138,10 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
     new THREE.ArrowHelper(
       new THREE.Vector3(0, -1, 0),
       origin,
-      negativeArrowLength,
+      arrowLength,
       0x34c759,
-      negativeHeadLength,
-      negativeHeadWidth
+      headLength,
+      headWidth
     )
   );
   axesGroup.add(
@@ -159,10 +158,10 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
     new THREE.ArrowHelper(
       new THREE.Vector3(0, 0, -1),
       origin,
-      negativeArrowLength,
+      arrowLength,
       0x0a84ff,
-      negativeHeadLength,
-      negativeHeadWidth
+      headLength,
+      headWidth
     )
   );
 
@@ -177,7 +176,7 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
     axesGroup.add(xLabel);
   }
   if (xNegLabel) {
-    xNegLabel.position.set(-negativeLabelOffset, 0, 0);
+    xNegLabel.position.set(-labelOffset, 0, 0);
     axesGroup.add(xNegLabel);
   }
   if (yLabel) {
@@ -185,7 +184,7 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
     axesGroup.add(yLabel);
   }
   if (yNegLabel) {
-    yNegLabel.position.set(0, -negativeLabelOffset, 0);
+    yNegLabel.position.set(0, -labelOffset, 0);
     axesGroup.add(yNegLabel);
   }
   if (zLabel) {
@@ -193,12 +192,13 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
     axesGroup.add(zLabel);
   }
   if (zNegLabel) {
-    zNegLabel.position.set(0, 0, -negativeLabelOffset);
+    zNegLabel.position.set(0, 0, -labelOffset);
     axesGroup.add(zNegLabel);
   }
   axesGroup.scale.setScalar(1.05);
   scene.add(axesGroup);
 
+  // Runs resize
   const resize = () => {
     const width = Math.max(1, canvas.clientWidth);
     const height = Math.max(1, canvas.clientHeight);
@@ -207,6 +207,7 @@ export function createEnvironmentGizmo(canvas, mainCamera) {
     camera.updateProjectionMatrix();
   };
 
+  // Renders the target state
   const render = () => {
     if (!mainCamera) return;
     axesGroup.quaternion.copy(mainCamera.quaternion).invert();

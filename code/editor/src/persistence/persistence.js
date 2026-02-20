@@ -1,5 +1,5 @@
-import { appConfig, persistenceSettings } from "../core/settings.js";
-import { materialEditor } from "../model/materialEditor.js";
+import { appConfig, persistenceSettings } from "../core/config/settings.js";
+import { materialEditor } from "../model/material/editor.js";
 import { serializeTransform } from "../scene/objects.js";
 import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
 
@@ -9,15 +9,18 @@ let cachedDbKey = "";
 const DEFAULT_ACTION_HISTORY_KEY = appConfig.actionHistoryKey;
 const DEFAULT_ACTION_HISTORY_LIMIT = appConfig.actionHistoryLimit;
 
+// Gets DB key
 function getDbKey(config) {
   return `${config.dbName}::${config.storeName}`;
 }
 
+// Clears cached DB
 function clearCachedDb() {
   cachedDbPromise = null;
   cachedDbKey = "";
 }
 
+// Opens DB
 function openDb(config) {
   const dbKey = getDbKey(config);
   if (cachedDbPromise && cachedDbKey === dbKey) {
@@ -57,10 +60,12 @@ function openDb(config) {
   });
 }
 
+// Returns whether stored OBJ text
 function hasStoredObjText(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+// Normalizes stored name
 function normalizeStoredName(value, fallback = "restored.obj") {
   if (typeof value === "string" && value.trim()) {
     return value.trim();
@@ -68,7 +73,7 @@ function normalizeStoredName(value, fallback = "restored.obj") {
   return fallback;
 }
 
-// Save imports (OBJ text + metadata) to IndexedDB.
+// Save imports (OBJ text + metadata) to IndexedDB
 export function saveStoredImports(config, storedImports) {
   const sourceEntries = Array.isArray(storedImports) ? storedImports : [];
   const entries = sourceEntries
@@ -95,7 +100,7 @@ export function saveStoredImports(config, storedImports) {
     });
 }
 
-// Read saved imports from IndexedDB.
+// Read saved imports from IndexedDB
 export function loadStoredImports(config) {
   cachedDbPromise = openDb(config);
   return cachedDbPromise
@@ -146,7 +151,7 @@ export function loadStoredImports(config) {
     });
 }
 
-// Debounce save requests to reduce write churn.
+// Debounce save requests to reduce write churn
 export function createSaveScheduler({
   isRestoring,
   save,
@@ -163,6 +168,7 @@ export function createSaveScheduler({
   };
 }
 
+// Gets storage
 function getStorage() {
   if (typeof window === "undefined") return null;
   try {
@@ -173,6 +179,7 @@ function getStorage() {
   }
 }
 
+// Runs clean entries
 function cleanEntries(entries = [], limit = DEFAULT_ACTION_HISTORY_LIMIT) {
   if (!Array.isArray(entries)) return [];
   const cleaned = entries
@@ -185,7 +192,7 @@ function cleanEntries(entries = [], limit = DEFAULT_ACTION_HISTORY_LIMIT) {
   return cleaned;
 }
 
-// Load action-history entries from localStorage.
+// Load action-history entries from localStorage
 export function loadActionHistory({
   key = DEFAULT_ACTION_HISTORY_KEY,
   limit = DEFAULT_ACTION_HISTORY_LIMIT,
@@ -205,7 +212,7 @@ export function loadActionHistory({
   }
 }
 
-// Save action-history entries to localStorage.
+// Save action-history entries to localStorage
 export function saveActionHistory({
   key = DEFAULT_ACTION_HISTORY_KEY,
   entries = [],
@@ -226,7 +233,7 @@ export function saveActionHistory({
   }
 }
 
-// Restore persisted entries through the importer pipeline.
+// Restore persisted entries through the importer pipeline
 export function restoreStoredImports({
   loadStoredImports,
   importer,
@@ -283,10 +290,12 @@ export function restoreStoredImports({
 
 const exporter = new OBJExporter();
 
+// Returns whether persistable OBJ text
 function hasPersistableObjText(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+// Runs clone for local OBJ export
 function cloneForLocalObjExport(object) {
   if (!object) return null;
   const clone = object.clone(true);
@@ -297,6 +306,7 @@ function cloneForLocalObjExport(object) {
   return clone;
 }
 
+// Runs export object as OBJ text
 function exportObjectAsObjText(object) {
   if (!object) return "";
   try {
@@ -309,13 +319,14 @@ function exportObjectAsObjText(object) {
   }
 }
 
+// Runs fallback name
 function fallbackName(object, index) {
   const objectName = typeof object?.name === "string" ? object.name.trim() : "";
   if (objectName) return objectName;
   return `object_${index + 1}`;
 }
 
-// Normalize stored entries before writing them back to persistence.
+// Normalize stored entries before writing them back to persistence
 export function prepareStoredImportsForSave(storedImports = [], importedObjects = []) {
   const entries = Array.isArray(storedImports) ? storedImports : [];
   const objects = Array.isArray(importedObjects) ? importedObjects : [];

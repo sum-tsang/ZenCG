@@ -1,7 +1,4 @@
-// Core app state primitives.
-
-// Initial state shape.
-// Create the initial application state snapshot.
+// Creates initial state
 export function createInitialState() {
   return {
     currentObject: null,
@@ -15,37 +12,34 @@ export function createInitialState() {
   };
 }
 
-// Lightweight state store.
-// Create a tiny state container with mutation helpers.
+// Creates store
 export function createStore(initialState = {}) {
   const state = { ...initialState };
   const listeners = new Set();
 
-  // Notify all subscribers of state changes.
+  // Handles notify
   const notify = () => {
     listeners.forEach((listener) => listener(state));
   };
 
-  // Read the current state object.
+  // Gets state
   const getState = () => state;
 
-  // Shallow-merge a patch into state and notify listeners.
+  // Sets state
   const setState = (patch) => {
-    if (patch && typeof patch === "object") {
-      Object.assign(state, patch);
-    }
+    if (!patch || typeof patch !== "object") return;
+    Object.assign(state, patch);
     notify();
   };
 
-  // Apply an in-place mutation function and notify listeners.
+  // Handles mutate
   const mutate = (mutator) => {
-    if (typeof mutator === "function") {
-      mutator(state);
-    }
+    if (typeof mutator !== "function") return;
+    mutator(state);
     notify();
   };
 
-  // Subscribe to state updates and return an unsubscribe function.
+  // Handles subscribe
   const subscribe = (listener) => {
     if (typeof listener !== "function") {
       return () => {};

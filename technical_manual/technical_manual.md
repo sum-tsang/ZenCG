@@ -11,7 +11,7 @@ ZenCG is a web-based 3D modelling application that runs on your browser. It lets
 
 # Background
 
-ZenCG came to mind for us as a very easy and convenient way to make quick edits to 3D models without too much of a learning curve,
+ZenCG came to mind for us as a very easy and convenient way to make quick edits to 3D models without too much of a learning curve.
 
 # System Overview
 

@@ -542,4 +542,3 @@ Session recovery depends on browser storage availability. Clearing browser data 
 - Export Whole Scene: Option to export all loaded scene objects as one output.
 - Action History: List of recent actions performed in the editor.
 - Session Recovery: Process of restoring previously saved scene state from browser storage.
-

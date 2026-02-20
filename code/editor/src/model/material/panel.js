@@ -1,11 +1,11 @@
-// Material panel UI.
-import { materialEditor } from "./materialEditor.js";
+import { materialEditor } from "./editor.js";
 
 /**
  * MaterialPanel - UI for material editing
  * Provides color picker, texture upload, and material property controls
  */
 export class MaterialPanel {
+  // Initializes class state
   constructor(containerId) {
     this.container = document.getElementById(containerId);
     if (!this.container) {
@@ -28,8 +28,6 @@ export class MaterialPanel {
     const panel = document.createElement("div");
     panel.id = "material-panel";
     panel.className = "material-panel";
-
-    // Header
     const header = document.createElement("div");
     header.className = "material-header";
     const title = document.createElement("h3");
@@ -37,8 +35,6 @@ export class MaterialPanel {
     title.textContent = "MATERIAL";
     header.appendChild(title);
     panel.appendChild(header);
-
-    // Color section
     const colorSection = this.createSection("Base Color");
     const colorRow = document.createElement("div");
     colorRow.className = "material-row color-row";
@@ -66,8 +62,6 @@ export class MaterialPanel {
     colorRow.appendChild(this.colorHexInput);
     colorSection.appendChild(colorRow);
     panel.appendChild(colorSection);
-
-    // Texture section
     const textureSection = this.createSection("Texture");
     
     const textureRow = document.createElement("div");
@@ -93,8 +87,6 @@ export class MaterialPanel {
 
     textureRow.appendChild(textureLabel);
     textureRow.appendChild(this.removeTextureBtn);
-
-    // Texture preview
     const texturePreviewRow = document.createElement("div");
     texturePreviewRow.className = "texture-preview-row";
     
@@ -140,12 +132,8 @@ export class MaterialPanel {
    */
   updateFromObject() {
     const props = this.editor.getMaterialProperties(this.currentObject);
-
-    // Update color
     this.colorPicker.value = props.color;
     this.colorHexInput.value = props.color;
-
-    // Update texture preview
     if (props.hasTexture) {
       this.texturePreview.textContent = "Texture applied";
       this.texturePreview.classList.add("has-texture");
@@ -183,8 +171,6 @@ export class MaterialPanel {
       console.error("Failed to apply texture:", error);
       this.texturePreview.textContent = "Error loading texture";
     }
-
-    // Reset input so same file can be selected again
     this.textureInput.value = "";
   }
 

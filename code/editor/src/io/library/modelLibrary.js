@@ -1,7 +1,6 @@
-// Model library loader with runtime 3D preview tiles.
 import * as THREE from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import { modelLibrarySettings } from "../core/settings.js";
+import { modelLibrarySettings } from "../../core/config/settings.js";
 
 const { preview, manifestPath } = modelLibrarySettings;
 const PREVIEW_WIDTH = preview.width;
@@ -12,12 +11,12 @@ const PREVIEW_MIN_RADIUS = preview.minRadius;
 const PREVIEW_TARGET_RADIUS = preview.targetRadius;
 const PREVIEW_LIFT = preview.lift;
 const PREVIEW_BACKGROUND_COLOR = preview.backgroundColor;
-
+// Handles yield to main thread
 const yieldToMainThread = () =>
   new Promise((resolve) => {
     requestAnimationFrame(() => resolve());
   });
-
+// Gets resource path
 function getResourcePath(filePath) {
   if (typeof filePath !== "string") {
     return "";
@@ -28,7 +27,7 @@ function getResourcePath(filePath) {
   }
   return filePath.slice(0, slashIndex + 1);
 }
-
+// Creates preview context
 function createPreviewContext() {
   try {
     const renderer = new THREE.WebGLRenderer({
@@ -67,7 +66,7 @@ function createPreviewContext() {
     return null;
   }
 }
-
+// Handles build preview materials
 function buildPreviewMaterials(object) {
   object.traverse((child) => {
     if (!child.isMesh) {
@@ -101,7 +100,7 @@ function buildPreviewMaterials(object) {
     child.material = Array.isArray(child.material) ? converted : converted[0];
   });
 }
-
+// Handles fit object to preview space
 function fitObjectToPreviewSpace(object) {
   const initialBounds = new THREE.Box3().setFromObject(object);
   if (initialBounds.isEmpty()) {
@@ -121,7 +120,7 @@ function fitObjectToPreviewSpace(object) {
   object.position.y -= scaledBounds.min.y;
   object.position.y += PREVIEW_LIFT;
 }
-
+// Handles frame preview camera
 function framePreviewCamera(camera, object) {
   const bounds = new THREE.Box3().setFromObject(object);
   if (bounds.isEmpty()) {
@@ -149,7 +148,7 @@ function framePreviewCamera(camera, object) {
   camera.lookAt(center.x, center.y + radius * 0.03, center.z);
   camera.updateProjectionMatrix();
 }
-
+// Handles dispose preview object
 function disposePreviewObject(object) {
   object.traverse((child) => {
     if (!child.isMesh) {
@@ -166,7 +165,7 @@ function disposePreviewObject(object) {
     });
   });
 }
-
+// Creates gallery tile
 function createGalleryTile(entry, onClick) {
   const label = entry.name ?? entry.id;
 
@@ -195,8 +194,7 @@ function createGalleryTile(entry, onClick) {
 
   return { button, image };
 }
-
-// Wire up the model library UI and loading flow.
+// Sets up library import
 export function setupLibraryImport({ dom, importer, setStatus }) {
   const galleryList = dom.libraryGalleryList;
 
@@ -214,7 +212,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
     modelMtlRequests: new Map(),
     tilesById: new Map(),
   };
-
+  // Renders gallery message
   const renderGalleryMessage = (message) => {
     galleryList.innerHTML = "";
     const empty = document.createElement("p");
@@ -222,7 +220,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
     empty.textContent = message;
     galleryList.append(empty);
   };
-
+  // Sets tile preview error
   const setTilePreviewError = (entryId) => {
     const tile = state.tilesById.get(entryId);
     if (!tile) {
@@ -231,7 +229,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
     tile.image.removeAttribute("src");
     tile.image.hidden = true;
   };
-
+  // Sets tile preview image
   const setTilePreviewImage = (entryId, imageUrl) => {
     const tile = state.tilesById.get(entryId);
     if (!tile) {
@@ -240,7 +238,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
     tile.image.src = imageUrl;
     tile.image.hidden = false;
   };
-
+  // Updates tile interactivity
   const updateTileInteractivity = () => {
     const busy = state.importingId !== "";
     state.tilesById.forEach(({ button }, modelId) => {
@@ -249,7 +247,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
       button.classList.toggle("is-importing", isActiveImport);
     });
   };
-
+  // Gets obj text
   const getObjText = async (entry) => {
     let request = state.modelTextRequests.get(entry.id);
     if (!request) {
@@ -270,7 +268,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
       throw error;
     }
   };
-
+  // Gets mtl text
   const getMtlText = async (entry) => {
     if (!entry?.mtlPath) {
       return "";
@@ -295,7 +293,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
       throw error;
     }
   };
-
+  // Gets mtl materials
   const getMtlMaterials = async (entry) => {
     if (!entry?.mtlPath || !canLoadMtl) {
       return null;
@@ -314,7 +312,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
       return null;
     }
   };
-
+  // Handles import from entry
   const importFromEntry = async (entry) => {
     if (!canImport || state.importingId) {
       return;
@@ -345,7 +343,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
       updateTileInteractivity();
     }
   };
-
+  // Renders gallery tiles
   const renderGalleryTiles = () => {
     galleryList.innerHTML = "";
     state.tilesById.clear();
@@ -360,7 +358,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
 
     updateTileInteractivity();
   };
-
+  // Renders preview image
   const renderPreviewImage = async (entry) => {
     if (!previewContext) {
       throw new Error("Preview rendering unavailable.");
@@ -387,7 +385,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
 
     return imageUrl;
   };
-
+  // Loads preview images
   const loadPreviewImages = async () => {
     if (!previewContext) {
       state.models.forEach((entry) => {
@@ -407,7 +405,7 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
       }
     }
   };
-
+  // Normalizes manifest entry
   const normalizeManifestEntry = (entry) => {
     if (!entry || typeof entry.id !== "string" || typeof entry.objPath !== "string") {
       return null;
@@ -436,7 +434,6 @@ export function setupLibraryImport({ dom, importer, setStatus }) {
       ...(mtlPath ? { mtlPath } : {}),
     };
   };
-
   async function loadLibrary() {
     renderGalleryMessage("Loading models...");
 

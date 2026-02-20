@@ -1,5 +1,4 @@
-
-// Collect the DOM nodes used across the editor.
+// Collect the DOM nodes used across the editor
 export function getDomRefs() {
   return {
     canvas: document.getElementById("viewport-canvas"),
@@ -38,7 +37,7 @@ export function getDomRefs() {
   };
 }
 
-// Validate required DOM elements early at startup.
+// Validate required DOM elements early at startup
 export function assertDom({ canvas, exportButton, deleteButton }) {
   if (!(canvas instanceof HTMLCanvasElement)) {
     throw new Error("Viewport canvas not found.");
@@ -53,7 +52,7 @@ export function assertDom({ canvas, exportButton, deleteButton }) {
   }
 }
 
-// Create a small helper to update the footer status text.
+// Create a small helper to update the footer status text
 export function createStatusUpdater(dom) {
   return function setStatus(message) {
     if (dom.status) {
@@ -62,11 +61,12 @@ export function createStatusUpdater(dom) {
   };
 }
 
+// Runs clamp
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-// Keep floating tools aligned with the current viewport layout.
+// Keep floating tools aligned with the current viewport layout
 export function setupUiLayout() {
   const gizmo = document.getElementById("viewport-tools");
   const toolsIsland = document.getElementById("tools-island");
@@ -75,6 +75,7 @@ export function setupUiLayout() {
 
   let rafId = 0;
 
+  // Updates the target state
   const update = () => {
     const rootStyles = getComputedStyle(document.documentElement);
     const edgeGap = parseFloat(rootStyles.getPropertyValue("--edge-gap"));
@@ -103,6 +104,7 @@ export function setupUiLayout() {
     }
   };
 
+  // Runs schedule
   const schedule = () => {
     if (rafId) return;
     rafId = requestAnimationFrame(() => {
@@ -126,6 +128,7 @@ export function setupUiLayout() {
   schedule();
 }
 
+// Returns whether editable target
 function isEditableTarget(target) {
   return (
     target instanceof HTMLInputElement ||
@@ -134,13 +137,14 @@ function isEditableTarget(target) {
   );
 }
 
+// Returns whether transform panel target
 function isTransformPanelTarget(target) {
   return target instanceof HTMLElement
     ? Boolean(target.closest("#transformation-panel-container"))
     : false;
 }
 
-// Register global keyboard shortcuts for editor actions.
+// Register global keyboard shortcuts for editor actions
 export function setupShortcuts({
   store,
   transformationManager,
@@ -152,6 +156,20 @@ export function setupShortcuts({
   pasteSelection,
   duplicateSelection,
 }) {
+  // Runs run undo
+  const runUndo = () => {
+    const canUndoDelete = typeof hasUndoDelete === "function" && hasUndoDelete();
+    if (canUndoDelete && store.getState().currentObject === null) {
+      undoDelete?.();
+      return;
+    }
+
+    const didUndo = transformationManager.undo?.();
+    if (!didUndo && typeof undoDelete === "function") {
+      undoDelete();
+    }
+  };
+
   document.addEventListener("keydown", (event) => {
     if (isEditableTarget(event.target) && !isTransformPanelTarget(event.target)) return;
 
@@ -161,8 +179,6 @@ export function setupShortcuts({
     const key = event.key.toLowerCase();
     const isCopy = key === "c";
     const isPaste = key === "v";
-    const isUndo = key === "undo" || (key === "z" && !event.shiftKey);
-    const isRedo = key === "redo" || key === "y" || (key === "z" && event.shiftKey);
 
     if (isCopy || isPaste) {
       if (isEditableTarget(event.target)) return;
@@ -175,42 +191,19 @@ export function setupShortcuts({
       return;
     }
 
-    if (!isUndo && !isRedo) {
-      const code = event.code;
-      if (code === "KeyZ" && !event.shiftKey) {
-        event.preventDefault();
-        const canUndoDelete = typeof hasUndoDelete === "function" && hasUndoDelete();
-        if (canUndoDelete && store.getState().currentObject === null) {
-          undoDelete?.();
-          return;
-        }
-        const didUndo = transformationManager.undo();
-        if (!didUndo && typeof undoDelete === "function") {
-          undoDelete();
-        }
-      } else if (code === "KeyZ" && event.shiftKey) {
-        event.preventDefault();
-        transformationManager.redo?.();
-      }
+    const isUndoShortcut = event.code === "KeyZ" && !event.shiftKey;
+    const isRedoShortcut = event.code === "KeyY" || (event.code === "KeyZ" && event.shiftKey);
+
+    if (!isUndoShortcut && !isRedoShortcut) {
       return;
     }
 
     event.preventDefault();
-    if (isRedo) {
+    if (isRedoShortcut) {
       transformationManager.redo?.();
       return;
     }
-
-    const canUndoDelete = typeof hasUndoDelete === "function" && hasUndoDelete();
-    if (canUndoDelete && store.getState().currentObject === null) {
-      undoDelete?.();
-      return;
-    }
-
-    const didUndo = transformationManager.undo();
-    if (!didUndo && typeof undoDelete === "function") {
-      undoDelete();
-    }
+    runUndo();
   });
 
   document.addEventListener("keydown", (event) => {

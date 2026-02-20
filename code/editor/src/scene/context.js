@@ -1,8 +1,8 @@
-// Scene setup.
+// Scene setup
 import * as THREE from "three";
 import { createCamera } from "../camera/camera.js";
 
-// Build renderer, scene, camera, and helper objects.
+// Build renderer, scene, camera, and helper objects
 export function createSceneContext(canvas) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -38,6 +38,7 @@ export function createSceneContext(canvas) {
   return { renderer, scene, camera, target, importRoot, selectionHelper, multiSelectionGroup };
 }
 
+// Creates grid guides
 function createGridGuides(size) {
   const half = size / 2;
   const guides = new THREE.Group();
@@ -73,7 +74,7 @@ function createGridGuides(size) {
   return guides;
 }
 
-// Create a highlighted box helper for selection.
+// Create a highlighted box helper for selection
 function createSelectionHelper(scene) {
   const helper = new THREE.BoxHelper(new THREE.Object3D(), 0x7fefff);
   helper.name = "SelectionOutline";
@@ -92,6 +93,7 @@ function createSelectionHelper(scene) {
   return helper;
 }
 
+// Creates multi selection group
 function createMultiSelectionGroup(scene) {
   const group = new THREE.Group();
   group.name = "MultiSelectionOutlines";

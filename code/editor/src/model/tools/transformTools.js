@@ -1,7 +1,14 @@
-// Transform tools wiring.
-import { TransformationManager } from "./manager.js";
-
-// Create and configure the transformation manager wiring.
+import { TransformationManager } from "../manager/index.js";
+// Creates split part entry
+function createSplitPartEntry(object, fallbackName) {
+  return {
+    name: object?.name || fallbackName,
+    text: "",
+    transform: null,
+    isSplitPart: true,
+  };
+}
+// Sets up transform tools
 export function setupTransformTools({
   scene,
   canvas,
@@ -36,11 +43,14 @@ export function setupTransformTools({
         store.mutate((state) => {
           state.currentObject = object ?? null;
         });
-        dom.exportButton.disabled = !object;
-        dom.deleteButton.disabled = !object;
+        if (dom.exportButton instanceof HTMLButtonElement) {
+          dom.exportButton.disabled = !object;
+        }
+        if (dom.deleteButton instanceof HTMLButtonElement) {
+          dom.deleteButton.disabled = !object;
+        }
         updateSelectionOutline(selectionHelper, object);
         renderObjectList();
-        // Notify app of selection change (for material panel, etc.)
         if (onSelectObject) onSelectObject(object);
       },
       onMultiSelectionChange: (objects) => {
@@ -49,43 +59,25 @@ export function setupTransformTools({
         });
       },
       onSplit: ({ original, inside, outside }) => {
+        const splitParts = [inside, outside].filter(Boolean);
+        if (!splitParts.length) return;
+        const splitEntries = splitParts.map((part, index) =>
+          createSplitPartEntry(part, index === 0 ? "split_inside" : "split_outside")
+        );
+
         store.mutate((state) => {
-          // Remove original from importedObjects and storedImports
           const originalIndex = state.importedObjects.indexOf(original);
           if (originalIndex !== -1) {
             state.importedObjects.splice(originalIndex, 1);
             state.storedImports.splice(originalIndex, 1);
           }
-          
-          // Add the new split parts as separate imported objects
-          // Wrap each mesh in a Group to match the structure of imported objects
-          const insideGroup = inside.parent === importRoot ? inside : inside;
-          const outsideGroup = outside.parent === importRoot ? outside : outside;
-          
-          state.importedObjects.push(insideGroup);
-          state.importedObjects.push(outsideGroup);
-          
-          // Add placeholder entries for storedImports (these are split parts, not full OBJ files)
-          state.storedImports.push({
-            name: inside.name || "split_inside",
-            text: "", // Split parts don't have original OBJ text
-            transform: null,
-            isSplitPart: true,
-          });
-          state.storedImports.push({
-            name: outside.name || "split_outside", 
-            text: "",
-            transform: null,
-            isSplitPart: true,
-          });
-          
-          // Update current object to the inside part
-          state.currentObject = insideGroup;
+
+          state.importedObjects.push(...splitParts);
+          state.storedImports.push(...splitEntries);
+          state.currentObject = inside ?? splitParts[0] ?? null;
         });
-        
-        // Re-render the object list to show both parts
         renderObjectList();
-        updateSelectionOutline(selectionHelper, inside);
+        updateSelectionOutline(selectionHelper, inside ?? splitParts[0] ?? null);
         scheduleSave();
       },
       onCombine: ({ combined, originals }) => {
